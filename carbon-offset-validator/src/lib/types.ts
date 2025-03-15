@@ -1,25 +1,14 @@
+import { Feature, FeatureCollection, Geometry } from 'geojson';
 
-export interface ProjectData {
+export interface Project {
   id: string;
-  name?: string;
-  location?: string;
-  size?: string;
-  startDate?: string;
-  description?: string;
-  geojson?: GeoJSON.FeatureCollection;
-}
-
-export interface AnalysisResult {
-  summary: string;
-  riskFactors: RiskFactor[];
-  recommendations: string[];
-  additionalInsights: string;
-}
-
-export interface RiskFactor {
   name: string;
-  score: number; // 0-100
   description: string;
+  location: string;
+  coordinates: [number, number];
+  status: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface DeforestationData {
@@ -32,32 +21,49 @@ export interface EmissionsData {
   tonnes: number;
 }
 
-export type FileType = 'pdd' | 'kml' | 'shapefile' | 'other';
+export interface RiskMetric {
+  category: string;
+  score: number;
+  impact: 'Low' | 'Medium' | 'High';
+  likelihood: 'Unlikely' | 'Possible' | 'Likely';
+  description: string;
+}
 
-export interface UploadedFile {
-  name: string;
-  type: FileType;
-  size: number;
-  url?: string;
+export interface PieChartData {
+  category: string;
+  value: number;
+}
+
+export interface Document {
+  id: string;
+  text: string;
+  metadata: {
+    type: string;
+    version: string;
+  };
+}
+
+export interface Analysis {
+  summary: string;
+  recommendations: string[];
+  additionalInsights: string;
+}
+
+export interface AIAnalysisResponse {
+  projectData: Project;
+  queryResponse: string;
+  analysis: Analysis;
+  riskMetrics: RiskMetric[];
+  deforestationData: DeforestationData[];
+  emissionsData: EmissionsData[];
+  pieChartData: PieChartData[];
+  documents: {
+    pdd: Document;
+    riskAnalysis: Document;
+  };
 }
 
 export interface AIAnalysisRequest {
   projectId: string;
   query: string;
-  files?: UploadedFile[];
-}
-
-export interface AIAnalysisResponse {
-  projectData: ProjectData;
-  analysis: AnalysisResult;
-  deforestationData: DeforestationData[];
-  emissionsData: EmissionsData[];
-  queryResponse: string;
-}
-
-export interface DeforestationLayer {
-  id: string;
-  areaName: string;
-  rate: number; // percentage per year
-  geojson: GeoJSON.FeatureCollection;
 }

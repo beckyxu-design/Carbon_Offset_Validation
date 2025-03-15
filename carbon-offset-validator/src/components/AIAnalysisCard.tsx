@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,19 +14,19 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   
   const copyToClipboard = () => {
     const text = `
-      Project: ${data.projectData.name || data.projectData.id}
+      Project: ${data.projectData.name}
       
       Query: ${data.queryResponse}
       
       Summary: ${data.analysis.summary}
       
-      Risk Factors:
-      ${data.analysis.riskFactors.map(factor => `- ${factor.name}: ${factor.score}/100 - ${factor.description}`).join('\n')}
+      Risk Metrics:
+      ${data.riskMetrics.map(metric => `- ${metric.category}: ${metric.score}/100 - ${metric.description}`).join('\n')}
       
       Recommendations:
       ${data.analysis.recommendations.map(rec => `- ${rec}`).join('\n')}
       
-      Additional Insights: ${data.analysis.additionalInsights}
+      Additional Insights: ${data.analysis.additionalInsights || 'None'}
     `;
     
     navigator.clipboard.writeText(text);

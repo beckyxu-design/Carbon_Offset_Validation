@@ -1,10 +1,10 @@
-
 import React from "react";
 import { AIAnalysisResponse } from "@/lib/types";
 import ProjectHeader from "./ProjectHeader";
 import AIAnalysisCard from "./AIAnalysisCard";
-import RiskMetrics from "./RiskMetrics";
+import RiskSummaryTable from "./RiskSummaryTable";
 import DataVisualization from "./DataVisualization";
+import LandusePieChart from "./LandusePieChart";
 
 interface ProjectAnalysisProps {
   data: AIAnalysisResponse;
@@ -17,13 +17,16 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AIAnalysisCard data={data} />
-        <RiskMetrics riskFactors={data.analysis.riskFactors} />
+        <RiskSummaryTable metrics={data.riskMetrics} />
       </div>
       
-      <DataVisualization 
-        deforestationData={data.deforestationData} 
-        emissionsData={data.emissionsData} 
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <DataVisualization 
+          deforestationData={data.deforestationData} 
+          emissionsData={data.emissionsData} 
+        />
+        <LandusePieChart data={data.pieChartData} />
+      </div>
     </div>
   );
 };

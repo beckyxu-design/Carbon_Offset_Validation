@@ -2,35 +2,40 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useMap } from '@/contexts/MapContext';
-import { sampleProjects, deforestationLayers, getProjectById } from '@/lib/sample-data';
-import MapboxTokenInput from './MapboxTokenInput';
+import { sampleProject, sampleGeoJSON } from '@/lib/sample-data';
 import MapControls from './MapControls';
+import ProjectSelector from './ProjectSelector';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const MapComponent: React.FC = () => {
-  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const { 
     selectedProjectId, 
     showDeforestationLayer,
-    mapToken 
+    setSelectedProjectId
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize map
   useEffect(() => {
-    if (!mapToken || !mapContainer.current || map.current) return;
+    if (!mapContainerRef.current || map.current) return;
 
     try {
-      mapboxgl.accessToken = mapToken;
+      const token = import.meta.env.VITE_MAPBOX_TOKEN;
+      if (!token) {
+        throw new Error('Mapbox token not found. Please add VITE_MAPBOX_TOKEN to your .env.local file.');
+      }
+      
+      mapboxgl.accessToken = token;
       
       const newMap = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/satellite-streets-v12',
-        center: [0, 20], // Default center
-        zoom: 1.5,
-        projection: 'globe',
-        attributionControl: false,
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/satellite-v9',
+        center: sampleProject.coordinates,
+        zoom: 9
       });
 
       // Add navigation controls
@@ -60,6 +65,49 @@ const MapComponent: React.FC = () => {
       // Add project layers when the map is ready
       newMap.on('load', () => {
         setMapInitialized(true);
+        setError(null);
+
+        // Add project area layer
+        map.current?.addSource('project-area', {
+          type: 'geojson',
+          data: sampleGeoJSON
+        });
+
+        map.current?.addLayer({
+          id: 'project-area-fill',
+          type: 'fill',
+          source: 'project-area',
+          paint: {
+            'fill-color': '#2563eb',
+            'fill-opacity': 0.2
+          }
+        });
+
+        map.current?.addLayer({
+          id: 'project-area-line',
+          type: 'line',
+          source: 'project-area',
+          paint: {
+            'line-color': '#2563eb',
+            'line-width': 2
+          }
+        });
+
+        // Add click handler
+        map.current?.on('click', 'project-area-fill', (e) => {
+          if (e.features && e.features[0].properties) {
+            setSelectedProjectId(e.features[0].properties.id);
+          }
+        });
+
+        // Change cursor on hover
+        map.current?.on('mouseenter', 'project-area-fill', () => {
+          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.current?.on('mouseleave', 'project-area-fill', () => {
+          if (map.current) map.current.getCanvas().style.cursor = '';
+        });
       });
 
       // Clean up on unmount
@@ -68,86 +116,12 @@ const MapComponent: React.FC = () => {
         map.current = null;
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize the map';
       console.error('Error initializing map:', error);
-      toast.error('Failed to initialize the map. Please check your Mapbox token.');
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
-  }, [mapToken]);
-
-  // Add project GeoJSON layers
-  useEffect(() => {
-    if (!mapInitialized || !map.current) return;
-
-    // Add all project layers
-    sampleProjects.forEach(project => {
-      if (project.geojson) {
-        const sourceId = `source-${project.id}`;
-        const layerId = `layer-${project.id}`;
-
-        // Add source if it doesn't exist
-        if (!map.current?.getSource(sourceId)) {
-          map.current?.addSource(sourceId, {
-            type: 'geojson',
-            data: project.geojson
-          });
-        }
-
-        // Add layer if it doesn't exist
-        if (!map.current?.getLayer(layerId)) {
-          map.current?.addLayer({
-            id: layerId,
-            type: 'fill',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'fill-color': '#3BB2D0',
-              'fill-opacity': 0.5
-            }
-          });
-
-          // Add outline layer
-          map.current?.addLayer({
-            id: `${layerId}-outline`,
-            type: 'line',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'line-color': '#3BB2D0',
-              'line-width': 2
-            }
-          });
-        }
-      }
-    });
-
-    // Fit bounds to show all projects
-    const bounds = new mapboxgl.LngLatBounds();
-    let hasValidBounds = false;
-
-    sampleProjects.forEach(project => {
-      if (project.geojson?.features?.length) {
-        project.geojson.features.forEach(feature => {
-          if (feature.geometry.type === 'Polygon') {
-            const coordinates = feature.geometry.coordinates[0];
-            coordinates.forEach(coord => {
-              bounds.extend([coord[0], coord[1]]);
-              hasValidBounds = true;
-            });
-          }
-        });
-      }
-    });
-
-    if (hasValidBounds) {
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 10
-      });
-    }
-
-    return () => {
-      // Clean up is handled in the initial useEffect
-    };
-  }, [mapInitialized]);
+  }, [setSelectedProjectId]);
 
   // Add or remove deforestation layers based on toggle
   useEffect(() => {
@@ -155,127 +129,129 @@ const MapComponent: React.FC = () => {
 
     if (showDeforestationLayer) {
       // Add deforestation layers
-      deforestationLayers.forEach(layer => {
-        const sourceId = `deforestation-source-${layer.id}`;
-        const layerId = `deforestation-layer-${layer.id}`;
+      // deforestationLayers.forEach(layer => {
+      //   const sourceId = `deforestation-source-${layer.id}`;
+      //   const layerId = `deforestation-layer-${layer.id}`;
 
-        // Add source if it doesn't exist
-        if (!map.current?.getSource(sourceId)) {
-          map.current?.addSource(sourceId, {
-            type: 'geojson',
-            data: layer.geojson
-          });
-        }
+      //   // Add source if it doesn't exist
+      //   if (!map.current?.getSource(sourceId)) {
+      //     map.current?.addSource(sourceId, {
+      //       type: 'geojson',
+      //       data: layer.geojson
+      //     });
+      //   }
 
-        // Add layer if it doesn't exist
-        if (!map.current?.getLayer(layerId)) {
-          map.current?.addLayer({
-            id: layerId,
-            type: 'fill',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'fill-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'rate'],
-                1, '#FFF587', // low deforestation
-                2, '#FF8C64', // medium 
-                3, '#FF665A'  // high deforestation
-              ],
-              'fill-opacity': 0.7
-            }
-          });
+      //   // Add layer if it doesn't exist
+      //   if (!map.current?.getLayer(layerId)) {
+      //     map.current?.addLayer({
+      //       id: layerId,
+      //       type: 'fill',
+      //       source: sourceId,
+      //       layout: {},
+      //       paint: {
+      //         'fill-color': [
+      //           'interpolate',
+      //           ['linear'],
+      //           ['get', 'rate'],
+      //           1, '#FFF587', // low deforestation
+      //           2, '#FF8C64', // medium 
+      //           3, '#FF665A'  // high deforestation
+      //         ],
+      //         'fill-opacity': 0.7
+      //       }
+      //     });
 
-          // Add outline for deforestation layer
-          map.current?.addLayer({
-            id: `${layerId}-outline`,
-            type: 'line',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'line-color': '#FF3D00',
-              'line-width': 1,
-              'line-dasharray': [2, 1]
-            }
-          });
-        }
-      });
+      //     // Add outline for deforestation layer
+      //     map.current?.addLayer({
+      //       id: `${layerId}-outline`,
+      //       type: 'line',
+      //       source: sourceId,
+      //       layout: {},
+      //       paint: {
+      //         'line-color': '#FF3D00',
+      //         'line-width': 1,
+      //         'line-dasharray': [2, 1]
+      //       }
+      //     });
+      //   }
+      // });
     } else {
       // Remove deforestation layers if they exist
-      deforestationLayers.forEach(layer => {
-        const layerId = `deforestation-layer-${layer.id}`;
-        const outlineLayerId = `${layerId}-outline`;
+      // deforestationLayers.forEach(layer => {
+      //   const layerId = `deforestation-layer-${layer.id}`;
+      //   const outlineLayerId = `${layerId}-outline`;
 
-        if (map.current?.getLayer(outlineLayerId)) {
-          map.current.removeLayer(outlineLayerId);
-        }
+      //   if (map.current?.getLayer(outlineLayerId)) {
+      //     map.current.removeLayer(outlineLayerId);
+      //   }
 
-        if (map.current?.getLayer(layerId)) {
-          map.current.removeLayer(layerId);
-        }
-      });
+      //   if (map.current?.getLayer(layerId)) {
+      //     map.current.removeLayer(layerId);
+      //   }
+      // });
     }
   }, [mapInitialized, showDeforestationLayer]);
 
-  // Zoom to selected project when selectedProjectId changes
+  // Zoom to selected project
   useEffect(() => {
     if (!mapInitialized || !map.current || !selectedProjectId) return;
 
-    const project = getProjectById(selectedProjectId);
-    if (!project?.geojson?.features?.length) return;
+    // Highlight selected project
+    // sampleProjects.forEach(p => {
+    //   const layerId = `layer-${p.id}`;
+    //   if (map.current?.getLayer(layerId)) {
+    //     map.current?.setPaintProperty(
+    //       layerId,
+    //       'fill-color',
+    //       p.id === selectedProjectId ? '#FFB74D' : '#3BB2D0'
+    //     );
+    //     map.current?.setPaintProperty(
+    //       layerId,
+    //       'fill-opacity',
+    //       p.id === selectedProjectId ? 0.7 : 0.5
+    //     );
+    //   }
+    // });
 
-    const bounds = new mapboxgl.LngLatBounds();
-    let hasValidBounds = false;
+    // Calculate bounds of the selected project
+    // const bounds = new mapboxgl.LngLatBounds();
+    // project.geojson.features.forEach(feature => {
+    //   if (feature.geometry.type === 'Polygon') {
+    //     const coordinates = feature.geometry.coordinates[0];
+    //     coordinates.forEach(coord => {
+    //       bounds.extend([coord[0], coord[1]]);
+    //     });
+    //   }
+    // });
 
-    project.geojson.features.forEach(feature => {
-      if (feature.geometry.type === 'Polygon') {
-        const coordinates = feature.geometry.coordinates[0];
-        coordinates.forEach(coord => {
-          bounds.extend([coord[0], coord[1]]);
-          hasValidBounds = true;
-        });
-      }
-    });
-
-    if (hasValidBounds) {
-      map.current.flyTo({
-        center: bounds.getCenter(),
-        zoom: 5,
-        duration: 2000,
-        essential: true
-      });
-    }
+    // Zoom to the selected project
+    // map.current.fitBounds(bounds, {
+    //   padding: 50,
+    //   maxZoom: 12,
+    //   duration: 1000
+    // });
   }, [selectedProjectId, mapInitialized]);
-
-  if (!mapToken) {
-    return (
-      <div className="bg-background/70 backdrop-blur-sm border border-border/50 rounded-lg h-full flex items-center justify-center p-4">
-        <div className="max-w-sm">
-          <h2 className="text-lg font-semibold mb-2">Mapbox Token Required</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            To view the interactive map, please enter your Mapbox API token below. 
-            This will be saved locally in your browser.
-          </p>
-          <MapboxTokenInput />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">
+      {error && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
       <div 
-        ref={mapContainer} 
-        className="absolute inset-0 bg-muted"
+        ref={mapContainerRef}
+        className="w-full h-full"
       />
+      <ProjectSelector />
       <MapControls />
-      {!mapInitialized && (
+      {!mapInitialized && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
-          <div className="text-center">
-            <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Loading map...</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       )}
     </div>

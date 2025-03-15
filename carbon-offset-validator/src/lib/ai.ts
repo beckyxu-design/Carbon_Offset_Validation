@@ -1,6 +1,5 @@
-
 import { pipeline } from '@huggingface/transformers';
-import { AIAnalysisRequest, AIAnalysisResponse } from './types';
+import { AIAnalysisRequest, AIAnalysisResponse, Project } from './types';
 import { toast } from 'sonner';
 
 // Function to handle file uploads (mock implementation)
@@ -17,30 +16,36 @@ export const uploadFile = async (file: File): Promise<string> => {
 };
 
 // Sample project data to simulate AI responses
-const sampleProjectData = {
+const sampleProjectData: { [key: string]: Project } = {
   "project-001": {
     id: "project-001",
     name: "Amazon Forest Conservation",
+    description: "Conservation project focused on preventing deforestation in the Amazon rainforest.",
     location: "Brazil",
-    size: "10,000 hectares",
+    coordinates: [-61.0, -4.0],
+    status: "Active",
     startDate: "2022-01-15",
-    description: "Conservation project focused on preventing deforestation in the Amazon rainforest."
+    endDate: "2032-01-15"
   },
   "project-002": {
     id: "project-002",
     name: "Congo Basin Protection",
+    description: "Project aimed at protecting the Congo Basin rainforest from illegal logging and land conversion.",
     location: "Democratic Republic of Congo",
-    size: "8,500 hectares", 
+    coordinates: [20.0, 5.0],
+    status: "Active",
     startDate: "2021-05-20",
-    description: "Project aimed at protecting the Congo Basin rainforest from illegal logging and land conversion."
+    endDate: "2031-05-20"
   },
   "project-003": {
     id: "project-003",
     name: "Borneo Peatland Restoration",
+    description: "Restoration of degraded peatlands in Borneo to prevent carbon emissions and protect biodiversity.",
     location: "Indonesia",
-    size: "5,200 hectares",
-    startDate: "2022-08-10", 
-    description: "Restoration of degraded peatlands in Borneo to prevent carbon emissions and protect biodiversity."
+    coordinates: [0.0, 115.0],
+    status: "Active",
+    startDate: "2022-08-10",
+    endDate: "2032-08-10"
   }
 };
 
@@ -133,10 +138,12 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     const projectData = sampleProjectData[projectId as keyof typeof sampleProjectData] || {
       id: projectId,
       name: `Project ${projectId}`,
+      description: "No description available.",
       location: "Unknown Location",
-      size: "Unknown Size",
+      coordinates: [0.0, 0.0],
+      status: "Unknown",
       startDate: "N/A",
-      description: "No description available."
+      endDate: "N/A"
     };
     
     // Generate analysis response
@@ -186,10 +193,59 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     // Construct the full response
     return {
       projectData,
+      queryResponse,
       analysis: analysisResult,
       deforestationData,
       emissionsData,
-      queryResponse
+      riskMetrics: [
+        {
+          category: "Deforestation Risk",
+          score: 75,
+          impact: "High",
+          likelihood: "Likely",
+          description: "High pressure from agricultural expansion"
+        },
+        {
+          category: "Social Impact",
+          score: 65,
+          impact: "Medium",
+          likelihood: "Possible",
+          description: "Moderate community engagement needed"
+        },
+        {
+          category: "Project Management",
+          score: 82,
+          impact: "High",
+          likelihood: "Likely",
+          description: "Strong track record but limited resources"
+        },
+        {
+          category: "Climate Risk",
+          score: 60,
+          impact: "Medium",
+          likelihood: "Likely",
+          description: "Increasing drought frequency"
+        }
+      ],
+      pieChartData: [
+        { category: "Primary Forest", value: 6500 },
+        { category: "Secondary Forest", value: 2000 },
+        { category: "Degraded Land", value: 800 },
+        { category: "Agricultural Land", value: 500 },
+        { category: "Water Bodies", value: 200 }
+      ],
+      documents: {
+        pdd: {
+          id: "doc-001",
+          text: "Project Design Document for Amazon Forest Conservation...",
+          metadata: { type: "PDD", version: "1.0" }
+        },
+        riskAnalysis: {
+          id: "doc-002",
+          text: "Risk Analysis Report for Amazon Forest Conservation...",
+          metadata: { type: "RISK_ANALYSIS", version: "1.0" }
+        }
+      }
     };
     
   } catch (error) {
