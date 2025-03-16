@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,7 @@ const Results = () => {
 
   if (isLoading) {
     return (
-      <SplitLayout>
+      <SplitLayout showMap={false}>
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
           <div className="text-center">
             <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4"></div>
@@ -66,7 +65,7 @@ const Results = () => {
 
   if (!analysisResult) {
     return (
-      <SplitLayout>
+      <SplitLayout showMap={false}>
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
           <div className="text-center">
             <p className="text-xl font-semibold mb-4">No analysis results found</p>
@@ -78,7 +77,7 @@ const Results = () => {
   }
 
   return (
-    <SplitLayout>
+    <SplitLayout showMap={false}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
           <div className="p-4">

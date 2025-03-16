@@ -1,0 +1,73 @@
+[33mWARNING[0m:  [16-03-2025 02:13:09] chroma_server_nofile is set to 65535, but this is less than current soft limit of 1048575. chroma_server_nofile will not be set.
+[32mINFO[0m:     [16-03-2025 02:13:10] Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component System
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component OpenTelemetryClient
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component SqliteDB
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component SimpleQuotaEnforcer
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component Posthog
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component SimpleRateLimitEnforcer
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component LocalSegmentManager
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component LocalExecutor
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component SegmentAPI
+[36mDEBUG[0m:    [16-03-2025 02:13:10] Starting component SimpleAsyncRateLimitEnforcer
+[32mINFO[0m:     [16-03-2025 02:13:10] Started server process [[36m19289[0m]
+[32mINFO[0m:     [16-03-2025 02:13:10] Waiting for application startup.
+[32mINFO[0m:     [16-03-2025 02:13:10] Application startup complete.
+[32mINFO[0m:     [16-03-2025 02:13:10] Uvicorn running on [1mhttp://localhost:8000[0m (Press CTRL+C to quit)
+[32mINFO[0m:     [16-03-2025 02:14:05] ::1:51101 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:14:05] ::1:51102 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:14:05] ::1:51101 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:15:50] ::1:51224 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:15:50] ::1:51225 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:15:50] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:15:50] ::1:51224 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:16:09] ::1:51254 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:16:09] ::1:51255 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:16:09] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:16:09] ::1:51254 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:17:53] ::1:51398 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:17:53] ::1:51399 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:17:53] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:17:53] ::1:51398 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:19:31] Starting component PersistentLocalHnswSegment
+[32mINFO[0m:     [16-03-2025 02:19:31] ::1:51523 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/619f060e-3f09-40ae-91fa-0766506fdde2/add HTTP/1.1" 201
+[33mWARNING[0m:  [16-03-2025 02:19:44] Number of requested results 5 is greater than number of elements in index 2, updating n_results = 2
+[32mINFO[0m:     [16-03-2025 02:19:44] ::1:51540 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/619f060e-3f09-40ae-91fa-0766506fdde2/query HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:20:25] ::1:51592 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:20:25] ::1:51593 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:20:25] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:20:25] ::1:51592 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[33mWARNING[0m:  [16-03-2025 02:20:43] Number of requested results 5 is greater than number of elements in index 2, updating n_results = 2
+[32mINFO[0m:     [16-03-2025 02:20:43] ::1:51616 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/619f060e-3f09-40ae-91fa-0766506fdde2/query HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:22:11] ::1:51726 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:22:11] ::1:51727 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:22:11] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:22:11] ::1:51726 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:36] ::1:51869 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:36] ::1:51870 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:23:36] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:23:36] ::1:51869 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:38] ::1:51878 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:38] ::1:51879 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:23:38] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:23:38] ::1:51878 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:43] ::1:51904 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:23:43] ::1:51905 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:23:43] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:23:43] ::1:51904 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[33mWARNING[0m:  [16-03-2025 02:24:07] Number of requested results 5 is greater than number of elements in index 2, updating n_results = 2
+[32mINFO[0m:     [16-03-2025 02:24:07] ::1:51945 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/619f060e-3f09-40ae-91fa-0766506fdde2/query HTTP/1.1" 200
+[33mWARNING[0m:  [16-03-2025 02:26:55] Number of requested results 5 is greater than number of elements in index 2, updating n_results = 2
+[32mINFO[0m:     [16-03-2025 02:26:55] ::1:52147 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections/619f060e-3f09-40ae-91fa-0766506fdde2/query HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:37:24] ::1:54772 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:37:24] ::1:54773 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:37:24] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:37:24] ::1:54772 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:43:43] ::1:55286 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:43:43] ::1:55287 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:43:43] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:43:43] ::1:55286 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:46:31] ::1:55509 - "GET /api/v2/tenants/default_tenant HTTP/1.1" 200
+[32mINFO[0m:     [16-03-2025 02:46:31] ::1:55510 - "GET /api/v2/tenants/default_tenant/databases/default_database HTTP/1.1" 200
+[36mDEBUG[0m:    [16-03-2025 02:46:31] Collection project_documents already exists, returning existing collection.
+[32mINFO[0m:     [16-03-2025 02:46:31] ::1:55509 - "POST /api/v2/tenants/default_tenant/databases/default_database/collections HTTP/1.1" 200

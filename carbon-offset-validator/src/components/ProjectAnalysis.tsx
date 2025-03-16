@@ -6,6 +6,7 @@ import RiskSummaryTable from "./RiskSummaryTable";
 import DataVisualization from "./DataVisualization";
 import LandusePieChart from "./LandusePieChart";
 
+// define a typescript interface with data prop type AIAnalysisResponse(structured data format)
 interface ProjectAnalysisProps {
   data: AIAnalysisResponse;
 }

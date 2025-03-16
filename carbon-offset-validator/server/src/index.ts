@@ -1,110 +1,203 @@
+// server api
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import { Pool } from 'pg';
-import { ChromaClient } from 'chromadb';
+import * as dotenv from 'dotenv';
+import { ChromaClient, Collection, QueryResponse } from 'chromadb';
 import { HfInference } from '@huggingface/inference';
+import { Project, ProjectSummary, RiskMetric, TimeSeriesData, PieChartData, GeoData } from './types/database';
+import { supabase } from './config/database';
 
 dotenv.config();
 
 const app = express();
+const port = process.env.PORT || 3005;
+
 app.use(cors());
 app.use(express.json());
 
-// Initialize PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 // Initialize ChromaDB client
-const chromaClient = new ChromaClient();
+let chromaClient: ChromaClient | null = null;
+let projectCollection: Collection | null = null;
+
+async function initChromaDB() {
+  try {
+    chromaClient = new ChromaClient();
+    projectCollection = await chromaClient.getOrCreateCollection({ name: 'project_documents' });
+    console.log('Successfully connected to ChromaDB');
+    return true;
+  } catch (err) {
+    console.warn('ChromaDB not available - document search features will be limited');
+    console.error('ChromaDB Error:', err);
+    return false;
+  }
+}
 
 // Initialize Hugging Face client
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+if (!process.env.HUGGINGFACE_API_KEY) {
+  console.warn('HUGGINGFACE_API_KEY not found - analysis features will be limited');
+}
+const hf = process.env.HUGGINGFACE_API_KEY ? new HfInference(process.env.HUGGINGFACE_API_KEY) : null;
 
-// API Routes
+// Test Supabase connection
+async function testConnection() {
+  try {
+    const { data, error } = await supabase.from('projects').select('id').limit(1);
+    if (error) throw error;
+    console.log('Successfully connected to Supabase');
+    return true;
+  } catch (err) {
+    console.error('Error connecting to Supabase:', err);
+    return false;
+  }
+}
+
+// Initialize connections
+async function init() {
+  const supabaseOk = await testConnection();
+  if (!supabaseOk) {
+    throw new Error('Failed to connect to Supabase - database connection required');
+  }
+  await initChromaDB(); // ChromaDB is optional
+}
+
+init().catch(console.error);
+
+// API Routes 
 app.get('/api/projects', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM projects');
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching projects:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*');
+    
+    if (error) throw error;
+    
+    res.json(data as Project[]);
+  } catch (err) {
+    console.error('Error fetching projects:', err);
+    res.status(500).json({ error: 'Failed to fetch projects' });
   }
 });
 
-app.get('/api/projects/:id', async (req, res) => {
+// Get project data from Supabase DB
+app.get('/api/projects/:code', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { code } = req.params;
+    console.log(code)
     
-    // Get project basic info
-    const projectResult = await pool.query(
-      'SELECT * FROM projects WHERE id = $1',
-      [id]
-    );
+    // First try exact match with project_code
+    let { data: projectData, error: projectError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('project_code', code)
+      .maybeSingle();
     
-    if (projectResult.rows.length === 0) {
+    if (!projectData) {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    const projectId = projectData.id;
+    console.log(projectId)
+
     // Get project summary
-    const summaryResult = await pool.query(
-      'SELECT * FROM project_summary WHERE project_id = $1',
-      [id]
-    );
-
-    // Get risk summary metrics
-    const riskMetricsResult = await pool.query(
-      'SELECT * FROM risk_summary_metrics WHERE project_id = $1',
-      [id]
-    );
-
+    const { data: summaryData, error: summaryError } = await supabase
+      .from('project_summary')
+      .select('*')
+      .eq('project_id', projectId)
+      .single();
+    
+    if (summaryError) throw summaryError;
+    
+    // Get risk metrics
+    const { data: riskMetricsData, error: riskError } = await supabase
+      .from('risk_summary_metrics')
+      .select('*')
+      .eq('project_id', projectId);
+    
+    if (riskError) throw riskError;
+    
     // Get time series data
-    const timeSeriesResult = await pool.query(
-      'SELECT * FROM time_series_data WHERE project_id = $1 ORDER BY timestamp',
-      [id]
-    );
-
+    const { data: timeSeriesData, error: timeSeriesError } = await supabase
+      .from('time_series_data')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('timestamp');
+    
+    if (timeSeriesError) throw timeSeriesError;
+    
     // Get pie chart data
-    const pieChartResult = await pool.query(
-      'SELECT * FROM pie_chart_data WHERE project_id = $1',
-      [id]
-    );
-
+    const { data: pieChartData, error: pieChartError } = await supabase
+      .from('pie_chart_data')
+      .select('*')
+      .eq('project_id', projectId);
+    
+    if (pieChartError) throw pieChartError;
+    
     // Get geospatial data
-    const geospatialResult = await pool.query(
-      'SELECT ST_AsGeoJSON(geom) as geometry, properties FROM geo_data WHERE project_id = $1',
-      [id]
-    );
+    const { data: geospatialData, error: geospatialError } = await supabase
+      .from('geo_data')
+      .select('geometry, properties')
+      .eq('project_id', projectId);
+    
+    if (geospatialError) throw geospatialError;
 
-    // Get PDD and Risk Analysis from ChromaDB
-    const collection = await chromaClient.getCollection('project_documents');
-    const documents = await collection.get({
-      where: { project_id: id },
-      limit: 2
-    });
+    // // Get PDD and Risk Analysis from ChromaDB if available
+    // let documents: { documents: string[] } = { documents: [] };
+    // if (projectCollection) {
+    //   try {
+    //     const result = await projectCollection.query({
+    //       queryTexts: [`Project ${code} documents`],
+    //       nResults: 2,
+    //       where: { project_id: projectId }
+    //     });
+    //     documents = {
+    //       documents: (result.documents?.[0] || []).filter((doc): doc is string => doc !== null)
+    //     };
+    //   } catch (err) {
+    //     console.warn('Failed to fetch documents from ChromaDB:', err);
+    //   }
+    // }
 
     const response = {
-      project: projectResult.rows[0],
-      summary: summaryResult.rows[0],
-      riskMetrics: riskMetricsResult.rows,
-      timeSeriesData: timeSeriesResult.rows,
-      pieChartData: pieChartResult.rows,
-      geospatialData: geospatialResult.rows.map(row => ({
+      project: projectData as Project,
+      summary: summaryData as ProjectSummary,
+      riskMetrics: riskMetricsData as RiskMetric[],
+      timeSeriesData: timeSeriesData as TimeSeriesData[],
+      pieChartData: pieChartData as PieChartData[],
+      geospatialData: (geospatialData as GeoData[]).map(row => ({
         type: 'Feature',
-        geometry: JSON.parse(row.geometry),
+        geometry: row.geometry,
         properties: row.properties
       })),
-      documents: {
-        pdd: documents.find(d => d.metadata.type === 'PDD'),
-        riskAnalysis: documents.find(d => d.metadata.type === 'RISK_ANALYSIS')
-      }
+      // documents: {
+      //   pdd: documents.documents?.[0] || null,
+      //   riskAnalysis: documents.documents?.[1] || null
+      // }
     };
-
+    
     res.json(response);
-  } catch (error) {
-    console.error('Error fetching project details:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err) {
+    console.error('Error fetching project details:', err);
+    res.status(500).json({ error: 'Failed to fetch project details' });
+  }
+});
+
+// Check if project exists
+app.get('/api/projects/:code/exists', async (req, res) => {
+  try {
+    // console.log(req.params);
+    const { code } = req.params;
+    const { data, error } = await supabase
+      .from('projects')
+      .select('project_code')
+      .or(`project_code.eq.${code}`)
+      .maybeSingle();
+    
+    if (error) throw error;
+    
+    res.json({ exists: !!data }); //!! converts data to boolean t/f
+  } catch (err) {
+    console.error('Error checking project existence:', err);
+    res.status(500).json({ error: 'Failed to check project existence' });
   }
 });
 
@@ -112,47 +205,110 @@ app.get('/api/projects/:id', async (req, res) => {
 app.post('/api/analyze', async (req, res) => {
   try {
     const { projectId, query } = req.body;
+    
+    if (!projectId || !query) {
+      return res.status(400).json({ error: 'projectId and query are required' });
+    }
 
-    // Get project documents from ChromaDB
-    const collection = await chromaClient.getCollection('project_documents');
-    const results = await collection.query({
-      queryTexts: [query],
-      nResults: 5,
-      where: { project_id: projectId }
-    });
-
-    // Use Hugging Face model for analysis
-    const analysis = await hf.textGeneration({
-      model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-      inputs: `Analyze this carbon offset project based on the following context and query:
-      
-Context:
-${results.documents.join('\n')}
-
-Query: ${query}
-
-Provide a detailed analysis focusing on:
-1. Project viability
-2. Risk assessment
-3. Environmental impact
-4. Recommendations`,
-      parameters: {
-        max_new_tokens: 500,
-        temperature: 0.7
+    // Query documents from ChromaDB if available
+    let documents: { documents: string[] } = { documents: [] };
+    if (projectCollection) {
+      try {
+        const result = await projectCollection.query({
+          queryTexts: [query],
+          nResults: 5,
+          where: { project_id: projectId }
+        });
+        documents = {
+          documents: (result.documents?.[0] || []).filter((doc): doc is string => doc !== null)
+        };
+      } catch (err) {
+        console.warn('Failed to fetch documents from ChromaDB:', err);
       }
-    });
+    }
+
+    // Use Hugging Face for analysis if available
+    let analysis = '';
+    if (hf) {
+      try {
+        // First get project data from Supabase for more context
+        const { data: projectData } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+
+        const prompt = `Based on the following information about a carbon offset project, 
+        please provide a concise analysis focusing on: ${query}
+
+        Project Context:
+        ${documents.documents?.join('\n\n')}
+
+        Please provide a clear, factual analysis based only on the information provided above.`;
+                
+        const response = await hf.textGeneration({
+          model: 'facebook/opt-2.7b',  // Using OPT model for better analysis
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 250,
+            temperature: 0.3, // Lower temperature for more focused responses
+            top_p: 0.9,
+            repetition_penalty: 1.2,
+            do_sample: true
+          }
+        });
+
+        // Clean up the response
+        analysis = response.generated_text
+          .replace(prompt, '')  // Remove the prompt
+          .trim();
+      } catch (err) {
+        console.warn('Failed to generate analysis with Hugging Face:', err);
+        analysis = 'Analysis generation failed';
+      }
+    } else {
+      analysis = 'Analysis not available - Hugging Face API key not configured';
+    }
 
     res.json({
-      analysis: analysis.generated_text,
-      relevantDocuments: results.documents
+      analysis,
+      context: documents.documents || []
     });
-  } catch (error) {
-    console.error('Error analyzing project:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err) {
+    console.error('Error analyzing project:', err);
+    res.status(500).json({ error: 'Failed to analyze project' });
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Add documents to ChromaDB
+app.post('/api/documents', async (req, res) => {
+  try {
+    const { projectId, documents } = req.body;
+    
+    if (!projectId || !documents || !Array.isArray(documents)) {
+      return res.status(400).json({ error: 'projectId and documents array are required' });
+    }
+
+    if (!projectCollection) {
+      return res.status(503).json({ error: 'ChromaDB not available' });
+    }
+
+    const ids = documents.map((_, index) => `${projectId}-doc-${index}`);
+    const metadata = documents.map(() => ({ project_id: projectId }));
+
+    await projectCollection.add({
+      ids,
+      metadatas: metadata,
+      documents
+    });
+
+    res.json({ message: 'Documents added successfully' });
+  } catch (err) {
+    console.error('Error adding documents:', err);
+    res.status(500).json({ error: 'Failed to add documents' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });

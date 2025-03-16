@@ -1,9 +1,9 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UploadForm from "@/components/UploadForm";
 import { AIAnalysisRequest } from "@/lib/types";
 import { processQuery } from "@/lib/ai";
+import { checkProjectExists } from "@/lib/api";
 import { toast } from "sonner";
 import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
@@ -17,6 +17,13 @@ const Index = () => {
     setIsLoading(true);
     
     try {
+      // Check if project exists in Supabase
+      const exists = await checkProjectExists(request.projectId);
+      if (!exists) {
+        toast.error(`Project ID ${request.projectId} does not exist in the database`);
+        return;
+      }
+
       // Set the selected project ID for the map
       setSelectedProjectId(request.projectId);
       
@@ -37,7 +44,7 @@ const Index = () => {
   };
 
   return (
-    <SplitLayout>
+    <SplitLayout showMap={false}>
       <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="flex-1">
           <div className="p-6 sm:p-10">
