@@ -41,9 +41,22 @@ const hf = process.env.HUGGINGFACE_API_KEY ? new HfInference(process.env.HUGGING
 // Test Supabase connection
 async function testConnection() {
   try {
-    const { data, error } = await supabase.from('projects').select('id').limit(1);
-    if (error) throw error;
+    // Test basic connection
+    const { data: connectionTest, error: connectionError } = await supabase.from('projects').select('id').limit(1);
+    if (connectionError) throw connectionError;
     console.log('Successfully connected to Supabase');
+
+    // Get table info
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('*');
+    
+    if (projectsError) throw projectsError;
+    
+    // console.log('Projects table structure:', projects?.[0] ? Object.keys(projects[0]) : 'No projects found');
+    // console.log('Number of projects:', projects?.length || 0);
+    // console.log('Sample project:', projects?.[0]);
+    
     return true;
   } catch (err) {
     console.error('Error connecting to Supabase:', err);
@@ -53,14 +66,31 @@ async function testConnection() {
 
 // Initialize connections
 async function init() {
-  const supabaseOk = await testConnection();
-  if (!supabaseOk) {
-    throw new Error('Failed to connect to Supabase - database connection required');
+  try {
+    const supabaseOk = await testConnection();
+    if (!supabaseOk) {
+      throw new Error('Failed to connect to Supabase - database connection required');
+    }
+    
+    try {
+      await initChromaDB(); // ChromaDB is optional
+    } catch (err) {
+      console.warn('ChromaDB initialization failed - continuing without document search features');
+    }
+
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  } catch (err) {
+    console.error('Server initialization failed:', err);
+    process.exit(1);
   }
-  await initChromaDB(); // ChromaDB is optional
 }
 
-init().catch(console.error);
+init().catch(err => {
+  console.error('Fatal error during initialization:', err);
+  process.exit(1);
+});
 
 // API Routes 
 app.get('/api/projects', async (req, res) => {
@@ -78,11 +108,48 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// Check if project exists
+app.get('/api/projects/:code/exists', async (req, res) => {
+  try {
+    const { code } = req.params;
+    // console.log('Checking project existence for code:', code);
+    
+    // First, let's log all projects to see what we have
+    const { data: allProjects, error: listError } = await supabase
+      .from('projects')
+      .select('project_code');
+    
+    // console.log('All project codes in database:', allProjects);
+    
+    // Now check for the specific project
+    const { data, error } = await supabase
+      .from('projects')
+      .select('project_code')
+      .eq('project_code', code)
+      .maybeSingle();
+    
+    // console.log('Supabase query result:', { data, error });
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+    
+    const exists = !!data;
+    // console.log('Project exists:', exists);
+    
+    res.json({ exists });
+  } catch (err) {
+    console.error('Error checking project existence:', err);
+    res.status(500).json({ error: 'Failed to check project existence' });
+  }
+});
+
 // Get project data from Supabase DB
 app.get('/api/projects/:code', async (req, res) => {
   try {
     const { code } = req.params;
-    console.log(code)
+    console.log('Fetching project data for code:', code);
     
     // First try exact match with project_code
     let { data: projectData, error: projectError } = await supabase
@@ -95,8 +162,13 @@ app.get('/api/projects/:code', async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
+    if (projectError) {
+      console.error('Error fetching project:', projectError);
+      throw projectError;
+    }
+
     const projectId = projectData.id;
-    console.log(projectId)
+    console.log('Found project with ID:', projectId);
 
     // Get project summary
     const { data: summaryData, error: summaryError } = await supabase
@@ -105,7 +177,10 @@ app.get('/api/projects/:code', async (req, res) => {
       .eq('project_id', projectId)
       .single();
     
-    if (summaryError) throw summaryError;
+    if (summaryError) {
+      console.error('Error fetching summary:', summaryError);
+      throw summaryError;
+    }
     
     // Get risk metrics
     const { data: riskMetricsData, error: riskError } = await supabase
@@ -113,7 +188,10 @@ app.get('/api/projects/:code', async (req, res) => {
       .select('*')
       .eq('project_id', projectId);
     
-    if (riskError) throw riskError;
+    if (riskError) {
+      console.error('Error fetching risk metrics:', riskError);
+      throw riskError;
+    }
     
     // Get time series data
     const { data: timeSeriesData, error: timeSeriesError } = await supabase
@@ -122,7 +200,10 @@ app.get('/api/projects/:code', async (req, res) => {
       .eq('project_id', projectId)
       .order('timestamp');
     
-    if (timeSeriesError) throw timeSeriesError;
+    if (timeSeriesError) {
+      console.error('Error fetching time series:', timeSeriesError);
+      throw timeSeriesError;
+    }
     
     // Get pie chart data
     const { data: pieChartData, error: pieChartError } = await supabase
@@ -130,7 +211,10 @@ app.get('/api/projects/:code', async (req, res) => {
       .select('*')
       .eq('project_id', projectId);
     
-    if (pieChartError) throw pieChartError;
+    if (pieChartError) {
+      console.error('Error fetching pie chart data:', pieChartError);
+      throw pieChartError;
+    }
     
     // Get geospatial data
     const { data: geospatialData, error: geospatialError } = await supabase
@@ -138,66 +222,29 @@ app.get('/api/projects/:code', async (req, res) => {
       .select('geometry, properties')
       .eq('project_id', projectId);
     
-    if (geospatialError) throw geospatialError;
-
-    // // Get PDD and Risk Analysis from ChromaDB if available
-    // let documents: { documents: string[] } = { documents: [] };
-    // if (projectCollection) {
-    //   try {
-    //     const result = await projectCollection.query({
-    //       queryTexts: [`Project ${code} documents`],
-    //       nResults: 2,
-    //       where: { project_id: projectId }
-    //     });
-    //     documents = {
-    //       documents: (result.documents?.[0] || []).filter((doc): doc is string => doc !== null)
-    //     };
-    //   } catch (err) {
-    //     console.warn('Failed to fetch documents from ChromaDB:', err);
-    //   }
-    // }
+    if (geospatialError) {
+      console.error('Error fetching geospatial data:', geospatialError);
+      throw geospatialError;
+    }
 
     const response = {
-      project: projectData as Project,
-      summary: summaryData as ProjectSummary,
-      riskMetrics: riskMetricsData as RiskMetric[],
-      timeSeriesData: timeSeriesData as TimeSeriesData[],
-      pieChartData: pieChartData as PieChartData[],
-      geospatialData: (geospatialData as GeoData[]).map(row => ({
+      project: projectData,
+      summary: summaryData,
+      riskMetrics: riskMetricsData,
+      timeSeriesData: timeSeriesData,
+      pieChartData: pieChartData,
+      geospatialData: geospatialData?.map(row => ({
         type: 'Feature',
         geometry: row.geometry,
         properties: row.properties
-      })),
-      // documents: {
-      //   pdd: documents.documents?.[0] || null,
-      //   riskAnalysis: documents.documents?.[1] || null
-      // }
+      }))
     };
     
+    console.log('Successfully fetched all project data');
     res.json(response);
   } catch (err) {
     console.error('Error fetching project details:', err);
     res.status(500).json({ error: 'Failed to fetch project details' });
-  }
-});
-
-// Check if project exists
-app.get('/api/projects/:code/exists', async (req, res) => {
-  try {
-    // console.log(req.params);
-    const { code } = req.params;
-    const { data, error } = await supabase
-      .from('projects')
-      .select('project_code')
-      .or(`project_code.eq.${code}`)
-      .maybeSingle();
-    
-    if (error) throw error;
-    
-    res.json({ exists: !!data }); //!! converts data to boolean t/f
-  } catch (err) {
-    console.error('Error checking project existence:', err);
-    res.status(500).json({ error: 'Failed to check project existence' });
   }
 });
 
@@ -307,8 +354,4 @@ app.post('/api/documents', async (req, res) => {
     console.error('Error adding documents:', err);
     res.status(500).json({ error: 'Failed to add documents' });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });

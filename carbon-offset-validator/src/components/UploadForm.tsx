@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AIAnalysisRequest, FileType, UploadedFile } from "@/lib/types";
-import { uploadFile } from "@/lib/ai";
+import { uploadFile } from "@/lib/ai_sample";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
@@ -24,7 +24,7 @@ interface UploadFormProps {
 }
 
 const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) => {
-  const [projectId, setProjectId] = useState<string>("");
+  const [projectCode, setProjectCode] = useState<string>("");
   const [query, setQuery] = useState<string>("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState<boolean>(false);
@@ -73,7 +73,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!projectId.trim()) {
+    if (!projectCode.trim()) {
       toast.error("Please enter a project ID");
       return;
     }
@@ -84,7 +84,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
     }
     
     const request: AIAnalysisRequest = {
-      projectId: projectId.trim(),
+      projectCode: projectCode.trim(),
       query: query.trim(),
       files: files.length > 0 ? files : undefined
     };
@@ -107,14 +107,14 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto animate-fade-in">
       <div className="space-y-2">
-        <Label htmlFor="projectId" className="text-sm font-medium">
-          Project ID
+        <Label htmlFor="projectCode" className="text-sm font-medium">
+          Project Code
         </Label>
         <Input
-          id="projectId"
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value)}
-          placeholder="Enter project ID (e.g., Project 5032)"
+          id="projectCode"
+          value={projectCode}
+          onChange={(e) => setProjectCode(e.target.value)}
+          placeholder="Enter project code (e.g., Project 5032)"
           className="glass-input h-12"
           required
         />

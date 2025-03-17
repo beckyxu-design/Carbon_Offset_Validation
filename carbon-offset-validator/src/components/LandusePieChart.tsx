@@ -12,6 +12,7 @@ interface LandusePieChartProps {
 
 const COLORS = ['#3b82f6', '#22c55e', '#eab308', '#ef4444', '#8b5cf6'];
 
+// def react functional component
 const LandusePieChart: React.FC<LandusePieChartProps> = ({ data }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   

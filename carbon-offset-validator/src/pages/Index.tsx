@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UploadForm from "@/components/UploadForm";
 import { AIAnalysisRequest } from "@/lib/types";
+// import { processQuery_sample } from "@/lib/ai_sample";
 import { processQuery } from "@/lib/ai";
 import { checkProjectExists } from "@/lib/api";
 import { toast } from "sonner";
@@ -17,27 +18,51 @@ const Index = () => {
     setIsLoading(true);
     
     try {
-      // Check if project exists in Supabase
-      const exists = await checkProjectExists(request.projectId);
-      if (!exists) {
-        toast.error(`Project ID ${request.projectId} does not exist in the database`);
+      if (!request.projectCode) {
+        toast.error("Please enter a project code");
         return;
       }
 
+      console.log('Submitting project code:', request.projectCode);
+
+      // Check if project exists in Supabase
+      const { data, error } = await checkProjectExists(request.projectCode);
+      console.log('Project existence check result:', { data, error });
+      
+      if (error) {
+        console.error('Project existence check error:', error);
+        toast.error(error);
+        return;
+      }
+      
+      if (!data?.exists) {
+        console.log('Project does not exist:', request.projectCode);
+        toast.error(`Project ${request.projectCode} does not exist in the database`);
+        return;
+      }
+
+      console.log('Project exists, proceeding with analysis');
+
       // Set the selected project ID for the map
-      setSelectedProjectId(request.projectId);
+      setSelectedProjectId(request.projectCode);
       
       // Process the query using our AI functions
+      // function in the lib/ai_sample.ts, which is a sample data
+      // function in the lib/ai.ts, which calls real db
       const result = await processQuery(request);
+      
+      if (!result) {
+        throw new Error("Failed to process query - no result returned");
+      }
       
       // Store the result in sessionStorage to pass it to the results page
       sessionStorage.setItem('analysisResult', JSON.stringify(result));
       
       // Navigate to the results page
       navigate('/results');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error analyzing project:", error);
-      toast.error("Failed to analyze project. Please try again.");
+      toast.error(error.message || "Failed to analyze project. Please try again.");
     } finally {
       setIsLoading(false);
     }

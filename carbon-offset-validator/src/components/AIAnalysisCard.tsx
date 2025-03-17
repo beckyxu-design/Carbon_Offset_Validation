@@ -18,15 +18,15 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
       
       Query: ${data.queryResponse}
       
-      Summary: ${data.analysis.summary}
+      Summary: ${data.summary.summary}
       
       Risk Metrics:
       ${data.riskMetrics.map(metric => `- ${metric.category}: ${metric.score}/100 - ${metric.description}`).join('\n')}
       
       Recommendations:
-      ${data.analysis.recommendations.map(rec => `- ${rec}`).join('\n')}
+      ${data.summary.recommendations.map(rec => `- ${rec}`).join('\n')}
       
-      Additional Insights: ${data.analysis.additionalInsights || 'None'}
+      Additional Insights: ${data.summary.additionalInsights || 'None'}
     `;
     
     navigator.clipboard.writeText(text);
@@ -75,13 +75,13 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Summary</h3>
-          <p>{data.analysis.summary}</p>
+          <p>{data.summary.summary}</p>
         </div>
         
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Recommendations</h3>
           <ul className="space-y-2">
-            {data.analysis.recommendations.map((recommendation, index) => (
+            {data.summary.recommendations.map((recommendation, index) => (
               <li key={index} className="flex items-start">
                 <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2 shrink-0 mt-0.5">
                   {index + 1}
@@ -92,11 +92,11 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
           </ul>
         </div>
         
-        {data.analysis.additionalInsights && (
+        {data.summary.additionalInsights && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Additional Insights</h3>
             <div className="bg-secondary/30 p-3 rounded-md">
-              <p>{data.analysis.additionalInsights}</p>
+              <p>{data.summary.additionalInsights}</p>
             </div>
           </div>
         )}

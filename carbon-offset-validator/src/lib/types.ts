@@ -1,7 +1,7 @@
 import { Feature, FeatureCollection, Geometry } from 'geojson';
 
 export interface Project {
-  id: string;
+  project_code: string;
   name: string;
   description: string;
   location: string;
@@ -43,7 +43,7 @@ export interface Document {
   };
 }
 
-export interface Analysis {
+export interface Summary {
   summary: string;
   recommendations: string[];
   additionalInsights: string;
@@ -52,7 +52,7 @@ export interface Analysis {
 export interface AIAnalysisResponse {
   projectData: Project;
   queryResponse: string;
-  analysis: Analysis;
+  summary: Summary;
   riskMetrics: RiskMetric[];
   deforestationData: DeforestationData[];
   emissionsData: EmissionsData[];
@@ -64,6 +64,6 @@ export interface AIAnalysisResponse {
 }
 
 export interface AIAnalysisRequest {
-  projectId: string;
+  projectCode: string;
   query: string;
 }

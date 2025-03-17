@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ProjectAnalysis from "@/components/ProjectAnalysis";
 import { AIAnalysisResponse } from "@/lib/types";
@@ -7,44 +7,60 @@ import { ArrowLeft, Home } from "lucide-react";
 import { toast } from "sonner";
 import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Results = () => {
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { setSelectedProjectId } = useMap();
+  const { projectCode } = useParams<{ projectCode: string }>();
 
   useEffect(() => {
-    // Try to get the analysis result from sessionStorage
-    const storedResult = sessionStorage.getItem('analysisResult');
-    
-    if (storedResult) {
+    const fetchData = async () => {
       try {
-        const parsedResult = JSON.parse(storedResult) as AIAnalysisResponse;
-        setAnalysisResult(parsedResult);
+        console.log('Fetching data for project:', projectCode);
+        setIsLoading(true);
+        setError(null);
+
+        // Try to get the analysis result from sessionStorage
+        const storedResult = sessionStorage.getItem('analysisResult');
         
-        // Set the project ID for the map
-        if (parsedResult.projectData?.id) {
-          setSelectedProjectId(parsedResult.projectData.id);
+        if (storedResult) {
+          try {
+            const parsedResult = JSON.parse(storedResult) as AIAnalysisResponse;
+            setAnalysisResult(parsedResult);
+            
+            // Set the project code for the map
+            if (parsedResult.projectData?.project_code) {
+              setSelectedProjectId(parsedResult.projectData.project_code);
+            }
+          } catch (error) {
+            console.error("Error parsing analysis result:", error);
+            setError('Error loading analysis results');
+          }
+        } else {
+          // If no result is found, redirect to the home page
+          setError('No analysis results found');
         }
-      } catch (error) {
-        console.error("Error parsing analysis result:", error);
-        toast.error("Error loading analysis results");
-        navigate('/');
+        
+        setIsLoading(false);
+        
+        // Cleanup function
+        return () => {
+          // We don't clear sessionStorage here to allow going back to the results
+        };
+      } catch (err) {
+        console.error('Error in Results page:', err);
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      // If no result is found, redirect to the home page
-      toast.error("No analysis results found");
-      navigate('/');
-    }
-    
-    setIsLoading(false);
-    
-    // Cleanup function
-    return () => {
-      // We don't clear sessionStorage here to allow going back to the results
     };
-  }, [navigate, setSelectedProjectId]);
+
+    fetchData();
+  }, [navigate, setSelectedProjectId, projectCode]);
 
   const handleGoBack = () => {
     navigate('/');
@@ -63,13 +79,28 @@ const Results = () => {
     );
   }
 
+  if (error) {
+    return (
+      <SplitLayout showMap={false}>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
+          <div className="text-center">
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      </SplitLayout>
+    );
+  }
+
   if (!analysisResult) {
     return (
       <SplitLayout showMap={false}>
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30">
           <div className="text-center">
-            <p className="text-xl font-semibold mb-4">No analysis results found</p>
-            <Button onClick={handleGoBack}>Go to Home</Button>
+            <Alert>
+              <AlertDescription>No analysis results found.</AlertDescription>
+            </Alert>
           </div>
         </div>
       </SplitLayout>
