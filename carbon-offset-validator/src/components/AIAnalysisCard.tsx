@@ -10,8 +10,10 @@ interface AIAnalysisCardProps {
 }
 
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
+  console.log("Recommendations:", data.summary.recommendations);
+
   const [copied, setCopied] = useState<boolean>(false);
-  
+
   const copyToClipboard = () => {
     const text = `
       Project: ${data.projectData.name}
@@ -24,18 +26,18 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
       ${data.riskMetrics.map(metric => `- ${metric.category}: ${metric.score}/100 - ${metric.description}`).join('\n')}
       
       Recommendations:
-      ${data.summary.recommendations.map(rec => `- ${rec}`).join('\n')}
-      
+      ${data.summary.recommendations.map(rec => `- ${rec.action} (Priority: ${rec.priority})`).join('\n')}
+  
       Additional Insights: ${data.summary.additionalInsights || 'None'}
     `;
-    
+
     navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success("Analysis copied to clipboard");
-    
+
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
@@ -72,12 +74,12 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
             <p className="font-medium">{data.queryResponse}</p>
           </div>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Summary</h3>
           <p>{data.summary.summary}</p>
         </div>
-        
+
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Recommendations</h3>
           <ul className="space-y-2">
@@ -86,12 +88,14 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
                 <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2 shrink-0 mt-0.5">
                   {index + 1}
                 </span>
-                <span>{recommendation}</span>
+                <span>
+                  {recommendation.action} (Priority: {recommendation.priority})
+                </span>
               </li>
             ))}
           </ul>
         </div>
-        
+
         {data.summary.additionalInsights && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Additional Insights</h3>
