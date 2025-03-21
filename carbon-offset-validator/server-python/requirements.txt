@@ -1,0 +1,22 @@
+# Core web framework
+fastapi==0.104.1
+uvicorn==0.23.2
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# Database
+supabase==1.0.3
+
+# HTTP requests
+requests>=2.32.2,<3.0.0
+
+# LlamaIndex components
+llama-index-core>=0.12.0,<0.13.0
+llama-index-readers-docling>=0.3.2
+llama-index-embeddings-openai>=0.1.0
+
+# Async support
+httpx
+
+# CORS support
+starlette>=0.27.0

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AIAnalysisRequest, FileType, UploadedFile } from "@/lib/types";
-import { uploadFile } from "@/lib/ai_sample";
+import { uploadFile } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 

@@ -43,3 +43,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# venv
+# ignore all the files in the venv folder
+server-python/venv
+

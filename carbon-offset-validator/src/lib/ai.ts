@@ -3,17 +3,17 @@ import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
 import { toast } from 'sonner';
 import { getProjectData } from './api';
 
-// Function to handle file uploads (mock implementation)
-export const uploadFile = async (file: File): Promise<string> => {
-  // In a real app, this would upload to a server and return a URL
-  console.log("Uploading file:", file.name);
+// // Function to handle file uploads (mock implementation)
+// export const uploadFile = async (file: File): Promise<string> => {
+//   // In a real app, this would upload to a server and return a URL
+//   console.log("Uploading file:", file.name);
   
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+//   // Simulate network delay
+//   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Return a dummy URL
-  return `https://example.com/uploads/${file.name}`;
-};
+//   // Return a dummy URL
+//   return `https://example.com/uploads/${file.name}`;
+// };
 
 export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalysisResponse> => {
   try {

@@ -67,3 +67,5 @@ export interface AIAnalysisRequest {
   projectCode: string;
   query: string;
 }
+
+
