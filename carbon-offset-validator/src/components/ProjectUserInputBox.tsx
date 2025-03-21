@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { sampleAnalysisResponse } from '@/lib/sample-data';
 import ProjectAnalysis from './ProjectAnalysis';
 
-const ProjectAnalysisContainer: React.FC = () => {
+const ProjectUserInputBox: React.FC = () => {
   const { selectedProjectId } = useMap();
   const [query, setQuery] = useState('');
   const [analysis, setAnalysis] = useState<AIAnalysisResponse | null>(null);
@@ -81,4 +81,4 @@ const ProjectAnalysisContainer: React.FC = () => {
   );
 };
 
-export default ProjectAnalysisContainer;
+export default ProjectUserInputBox;

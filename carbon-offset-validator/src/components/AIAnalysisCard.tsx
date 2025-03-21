@@ -5,12 +5,15 @@ import { AIAnalysisResponse } from "@/lib/types";
 import { Copy, Check, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
+// This interface defines the props for the AIAnalysisCard component.
+// It ensures that the component receives the correct data structure,
+// which is essential for type safety and proper rendering of the analysis results.
 interface AIAnalysisCardProps {
   data: AIAnalysisResponse;
 }
 
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
-  console.log("Recommendations:", data.summary.recommendations);
+  // console.log("Recommendations:", data.summary.recommendations);
 
   const [copied, setCopied] = useState<boolean>(false);
 

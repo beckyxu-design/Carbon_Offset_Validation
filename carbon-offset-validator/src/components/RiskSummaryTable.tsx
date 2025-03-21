@@ -2,14 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertTriangle } from 'lucide-react';
+import { RiskMetric } from '@/lib/types';
 
-interface RiskMetric {
-  category: string;
-  score: number;
-  impact: string;
-  likelihood: string;
-  description: string;
-}
+// This interface is not needed here as it's already defined in the types.ts file.
+// Import the RiskMetric interface from the types file instead:
 
 interface RiskSummaryTableProps {
   metrics: RiskMetric[];
