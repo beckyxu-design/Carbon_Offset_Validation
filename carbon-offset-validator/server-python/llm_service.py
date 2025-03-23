@@ -1,4 +1,14 @@
 # llm_service.py
+# extract_doc_basicInfo(document_index, additional_context): Extract basic project information from document using LLM with XML-formatted output
+# analyze_projectdesign_risks(document_index, poolicy_index): Analyze document risks compared to policy documents
+# analyze_policy_risks(document_index, regional_policies_index): Generate recommendations and analysis data based on regional policies
+# call_llm_api(prompt): Call LLM API with the provided prompt
+# parse_xml_response(): parse xml response
+    # need to implement this shit:
+        # Convert to dictionary (implementation details omitted)
+        # This would be a recursive function to convert XML to dict
+        
+
 import os
 import requests
 import xml.etree.ElementTree as ET
@@ -8,7 +18,7 @@ from typing import Dict, List, Any, Optional
 load_dotenv()
 API_URL = os.getenv("LLM_API_URL")  # Set to your preferred LLM API
 
-async def analyze_document(document_text: str, additional_context: Optional[str] = None) -> Dict[str, Any]:
+async def extract_doc_basicInfo(document_index: str, additional_context: Optional[str] = None) -> Dict[str, Any]:
     """
     Extract basic project information from document using LLM with XML-formatted output
     """
@@ -37,7 +47,7 @@ async def analyze_document(document_text: str, additional_context: Optional[str]
     </project_info>
     </output_format>
 
-    Document to analyze: {document_text}{context}
+    Document to analyze: {document_index}{context}
     """
     
     # Call your preferred LLM API
@@ -51,7 +61,7 @@ async def analyze_document(document_text: str, additional_context: Optional[str]
         print(f"Error parsing LLM response: {e}")
         raise Exception(f"Failed to parse LLM output: {e}")
 
-async def analyze_risks(document_text: str, policy_documents: str) -> List[Dict[str, Any]]:
+async def analyze_projectdesign_risks(document_index: index, policy_index: index) -> List[Dict[str, Any]]:
     """
     Analyze document risks compared to policy documents
     """
@@ -77,8 +87,8 @@ async def analyze_risks(document_text: str, policy_documents: str) -> List[Dict[
     </risk_metrics>
     </output_format>
 
-    Project document: {document_text}
-    Reference policy documents: {policy_documents}
+    Project document: {document_index}
+    Reference policy documents: {policy_index}
     """
     
     response = await call_llm_api(prompt)
@@ -102,7 +112,7 @@ async def analyze_risks(document_text: str, policy_documents: str) -> List[Dict[
         print(f"Error parsing risk metrics: {e}")
         raise Exception(f"Failed to parse risk metrics: {e}")
 
-async def generate_recommendations(document_text: str, regional_policies: str) -> Dict[str, Any]:
+async def analyze_policy_risks(document_index: index, regional_policies_index: index) -> Dict[str, Any]:
     """
     Generate recommendations and analysis data based on regional policies
     """
@@ -120,55 +130,43 @@ async def generate_recommendations(document_text: str, regional_policies: str) -
     <summary>
       <overall_summary>COMPREHENSIVE_SUMMARY</overall_summary>
       <recommendations>
-        <!-- Recommendations -->
+        <recommendation>
+          <action>ACTION_DESCRIPTION</action>
+          <priority>PRIORITY_LEVEL</priority>
+        </recommendation>
+        <!-- Additional recommendations -->
       </recommendations>
       <additional_insights>ADDITIONAL_INSIGHTS</additional_insights>
     </summary>
 
-    <time_series_data>
-      <!-- Time series data -->
-    </time_series_data>
-
-    <pie_chart_data>
-      <!-- Pie chart data -->
-    </pie_chart_data>
-    </output_format>
-
-    Project document: {document_text}
-    Country/regional policies: {regional_policies}
+    Project document: {document_index}
+    Country/regional policies: {regional_policies_index}
     """
     
     response = await call_llm_api(prompt)
     
-    # Parse XML response (implementation omitted for brevity)
-    # Would need to extract and format all the data elements
-
-    # Sample return structure
-    return {
-        "summary": {
-            "overall_summary": "Summary text...",
-            "recommendations": [
-                {"action": "Action 1", "priority": "high"},
-                {"action": "Action 2", "priority": "medium"}
-            ],
-            "additional_insights": "Additional insights..."
-        },
-        "deforestation_data": [
-            {"year": 2019, "hectares": 150},
-            {"year": 2020, "hectares": 130},
-            {"year": 2021, "hectares": 100}
-        ],
-        "emissions_data": [
-            {"year": 2019, "tonnes": 5000},
-            {"year": 2020, "tonnes": 4500},
-            {"year": 2021, "tonnes": 4000}
-        ],
-        "pie_chart_data": [
-            {"category": "Forest", "value": 45},
-            {"category": "Agriculture", "value": 30},
-            {"category": "Urban", "value": 25}
-        ]
-    }
+    # Parse XML response
+    try:
+        xml_root = ET.fromstring(response)
+        summary_element = xml_root.find(".//summary")
+        
+        recommendations = []
+        for rec in summary_element.findall(".//recommendation"):
+            recommendations.append({
+                "action": rec.find("action").text,
+                "priority": rec.find("priority").text
+            })
+        
+        return {
+            "summary": {
+                "overall_summary": summary_element.find("overall_summary").text,
+                "recommendations": recommendations,
+                "additional_insights": summary_element.find("additional_insights").text
+            }
+        }
+    except Exception as e:
+        print(f"Error parsing recommendations: {e}")
+        raise Exception(f"Failed to parse recommendations: {e}")
 
 async def call_llm_api(prompt: str) -> str:
     """
@@ -213,6 +211,6 @@ def parse_xml_response(response: str, root_tag: str) -> Dict[str, Any]:
     
     # Convert to dictionary (implementation details omitted)
     # This would be a recursive function to convert XML to dict
-    
+    # need to implement this shit
     # Return parsed data
     return {"parsed_data": "Would be XML converted to dict"}

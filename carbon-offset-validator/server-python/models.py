@@ -41,9 +41,9 @@ class PieChartSegment(BaseModel):
 class ProjectAnalysisRequest(BaseModel):
     projectCode: str
     query: str
-    document_text: str
-    policy_documents: Optional[str] = None
-    regional_policies: Optional[str] = None
+    document_text: any
+    # policy_documents: Optional[str] = None
+    # regional_policies: Optional[str] = None
 
 class ProjectAnalysisResponse(BaseModel):
     projectData: ProjectInfo

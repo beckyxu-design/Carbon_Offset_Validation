@@ -1,4 +1,9 @@
 # file_service.py
+
+# async def store_file(file: UploadFile) -> str: Store uploaded file and return file ID
+#  async def process_uploaded_file(file: UploadFile) -> str:
+
+
 import os
 import uuid
 from fastapi import UploadFile
@@ -62,6 +67,9 @@ async def process_uploaded_file(file: UploadFile) -> str:
                 transformations=[node_parser],
                 embed_model=EMBED_MODEL,
             )
+            # improve the pipelien here
+            # identify embedding model
+            # create metadata extraction
             
             # persist the index
             storage_dir = os.path.join(os.getcwd(), "storage", document_name + "_" + str(uuid.uuid4()))
