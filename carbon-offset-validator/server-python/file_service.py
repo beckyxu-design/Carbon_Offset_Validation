@@ -1,15 +1,18 @@
 # file_service.py
-
-# async def store_file(file: UploadFile) -> str: Store uploaded file and return file ID
-#  async def process_uploaded_file(file: UploadFile) -> str:
-
+# store_file(file: UploadFile) -> str: Store uploaded file and return file ID
+# process_uploaded_file(file: UploadFile) -> str:
 
 import os
 import uuid
 from fastapi import UploadFile
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import MarkdownNodeParser
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.extractors import TitleExtractor
+from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.readers.docling import DoclingReader
+from llama_index.embeddings import GeminiEmbedding # may change to huggingface instead
+
 
 async def store_file(file: UploadFile) -> str:
     """
@@ -41,7 +44,6 @@ async def process_uploaded_file(file: UploadFile) -> str:
     try:
         # Read the content of the file
         content = await file.read()                             
-        
         # Get the file name and extension
         file_name = file.filename
         document_name = os.path.splitext(file_name)[0]
@@ -60,21 +62,32 @@ async def process_uploaded_file(file: UploadFile) -> str:
             if not documents:
                 raise ValueError("No context extraced from file with llamaindex docling reader")
             
-            # Create the index
-            node_parser = MarkdownNodeParser()
-            index = VectorStoreIndex.from_documents(
-                documents=documents,
-                transformations=[node_parser],
-                embed_model=EMBED_MODEL,
+            # create ingestion pipeline to define splitter and embed model 
+            embed_model = embed_model or GeminiEmbedding(api_key=os.getenv("GEMINI_API_KEY", "default-key"))
+            pipeline = IngestionPipeline(
+                transformations=[
+                    SentenceSplitter(chunk_size=500, chunk_overlap=50),  # Match your project chunking
+                    TitleExtractor(),
+                    embed_model
+                ]
             )
-            # improve the pipelien here
-            # identify embedding model
-            # create metadata extraction
             
+            # Create the index
+            # node_parser = MarkdownNodeParser()
+            nodes = await pipeline.run(documents=documents)
+            index = VectorStoreIndex.from_vector_store(
+                nodes,
+                # transformations=[node_parser],
+                embed_model=embed_model,
+            )
+
             # persist the index
-            storage_dir = os.path.join(os.getcwd(), "storage", document_name + "_" + str(uuid.uuid4()))
+            storage_dir = os.path.join(os.getcwd(), "storage", f"{document_name}_{uuid.uuid4()}")
             os.makedirs(storage_dir, exist_ok=True)
             index.storage_context.persist(persist_dir=storage_dir)
+            # to load the storage 
+            # storage_context = StorageContext.from_defaults(persist_dir="./policy_storage")
+            # policy_index = load_index_from_storage(storage_context)
             
             return index
         
@@ -86,5 +99,10 @@ async def process_uploaded_file(file: UploadFile) -> str:
                 
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Validation error processing file: {str(ve)}")
+    except OSError as ose:
+        raise HTTPException(status_code=500, detail="File system error occurred")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+# need a function to check if VCR policy docs index exists, and if Country level policy exists
+# if not, process the VCR policy docs 

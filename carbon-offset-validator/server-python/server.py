@@ -1,4 +1,12 @@
 # server.py
+# functions:
+# @app.get("/api/projects")
+# @app.get("/api/projects/{project_code}")
+# @app.get("/api/projects/{code}/exists")
+# @app.post("/api/upload")
+# @app.post("/api/analyze")
+# @app.post("/api/generate-text")
+
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -77,10 +85,63 @@ async def analyze_project_llm(request: ProjectAnalysisRequest):
             "queryResponse": request.query,
             "summary": risk_policy["summary"], # update this summary to 
             "riskMetrics": risk_metrics,
-            "deforestationData": risk_policy["deforestation_data"],
-            "emissionsData": risk_policy["emissions_data"],
-            "pieChartData": risk_policy["pie_chart_data"],
+            # these functions should create with GIS analysis...  
+            # "deforestationData": risk_policy["deforestation_data"],
+            # "emissionsData": risk_policy["emissions_data"],
+            # "pieChartData": risk_policy["pie_chart_data"],
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-text")
+async def generate_text(request: dict):
+    """
+    Generate AI text responses based on project data and user queries.
+    
+    This endpoint receives a query and project_code, then generates
+    a relevant response about the carbon offset project.
+    """
+    try:
+        query = request.get("query", "")
+        project_code = request.get("projectCode", "")
+        
+        if not query or not project_code:
+            raise HTTPException(status_code=400, detail="Query and projectCode are required")
+        
+        # Get project details to provide context for the response
+        project_data = await get_project_details(project_code)
+        if not project_data:
+            raise HTTPException(status_code=404, detail=f"Project with code {project_code} not found")
+        
+        # Generate a response based on the query and project data
+        # This is a simplified implementation - in production you would use a more
+        # sophisticated approach with a proper LLM integration
+        
+        # Example response generation based on query keywords and project data
+        response = ""
+        project_name = project_data["project"]["name"]
+        project_location = project_data["project"]["location"]
+        
+        if "risk" in query.lower() or "risks" in query.lower():
+            risk_metrics = project_data.get("riskMetrics", [])
+            if risk_metrics:
+                highest_risk = max(risk_metrics, key=lambda x: x.get("score", 0))
+                response = f"The highest risk for {project_name} is in the {highest_risk.get('category', 'unknown')} category with a score of {highest_risk.get('score', 'N/A')}. {highest_risk.get('description', '')}"
+            else:
+                response = f"No risk metrics are available for {project_name}."
+        
+        elif "deforestation" in query.lower():
+            response = f"The {project_name} project in {project_location} is implementing measures to reduce deforestation through sustainable land management practices and community engagement."
+        
+        elif "emission" in query.lower() or "carbon" in query.lower():
+            response = f"The {project_name} project aims to reduce carbon emissions through improved forest management and conservation activities in {project_location}."
+        
+        else:
+            # Default response
+            response = f"The {project_name} project in {project_location} is a carbon offset initiative that focuses on sustainable forest management and community development."
+        
+        return {"response": response}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

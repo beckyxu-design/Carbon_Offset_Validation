@@ -7,8 +7,8 @@ const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 // API endpoints
 const endpoints = {
   projects: '/api/projects',
-  projectExists: (code: string) => `/api/projects/${code}/exists`,
-  projectDetail: (code: string) => `/api/projects/${code}`,
+  projectExists: (project_code: string) => `/api/projects/${project_code}/exists`,
+  projectDetail: (project_code: string) => `/api/projects/${project_code}`,
   analyze: '/api/analyze',
   upload: '/api/upload',
 };
@@ -55,7 +55,7 @@ export const uploadFile = async (file: File): Promise<ApiResponse<{ fileId: stri
   }
 };
 
-// Fetch project data by project code
+// Fetch project data by project project_code
 //A promise is a JavaScript object representing the eventual completion or failure of an asynchronous operation.
 // a Promise is an object that represents a future result or error. It can have three states:
 // Pending: Operation is ongoing.
@@ -125,7 +125,7 @@ export const analyzeProject = async (
     });
     // In Axios, the response you get after a successful request contains several properties, such as:
     // data: Actual response payload from the server (usually JSON).
-    // status: HTTP status code (e.g., 200, 404, 500).
+    // status: HTTP status project_code (e.g., 200, 404, 500).
     // headers: HTTP headers sent by the server.
     return { data: response.data };
   } catch (error: any) {
