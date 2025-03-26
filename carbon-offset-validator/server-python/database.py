@@ -5,9 +5,9 @@
 # insert_project_GISdata(project_code: str, gis_results: Dict[str, Any]): insert gis data result
 
 import os
-from dotenv import load_dotenv
 from supabase import create_client, Client
 from typing import Dict, List, Any
+from dotenv import load_dotenv
 
 load_dotenv()
 

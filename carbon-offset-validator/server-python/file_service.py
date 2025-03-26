@@ -12,7 +12,9 @@ from llama_index.core.extractors import TitleExtractor
 from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.readers.docling import DoclingReader
 from llama_index.embeddings import GeminiEmbedding # may change to huggingface instead
+from dotenv import load_dotenv
 
+load_dotenv()
 
 async def store_file(file: UploadFile) -> str:
     """
@@ -75,7 +77,7 @@ async def process_uploaded_file(file: UploadFile) -> str:
             # Create the index
             # node_parser = MarkdownNodeParser()
             nodes = await pipeline.run(documents=documents)
-            index = VectorStoreIndex.from_vector_store(
+            index = VectorStoreIndex.(
                 nodes,
                 # transformations=[node_parser],
                 embed_model=embed_model,
