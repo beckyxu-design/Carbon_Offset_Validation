@@ -14,18 +14,37 @@ import requests
 import xml.etree.ElementTree as ET
 from dotenv import load_dotenv
 from typing import Dict, List, Any, Optional
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core import get_response_synthesizer
 
 load_dotenv()
-API_URL = os.getenv("LLM_API_URL")  # Set to your preferred LLM API
+# API_URL = os.getenv("LLM_API_URL", "http://localhost:11434/api/generate")  # Default to Ollama API endpoint
+API_URL =  "http://localhost:11434/api/generate"
 
-async def extract_doc_basicInfo(document_index: str, additional_context: Optional[str] = None) -> Dict[str, Any]:
+async def extract_doc_basicInfo(index_pdd: VectorStoreIndex, query: str, project_code: str) -> Dict[str, Any]:
     """
     Extract basic project information from document using LLM with XML-formatted output
+    Args:
+        index_pdd: VectorStoreIndex of the document to extract information from
+    Returns:
+        Dictionary containing extracted project information
     """
-    context = f"\n\nAdditional context:\n{additional_context}" if additional_context else ""
+    # context = f"\n\nAdditional context:\n{additional_context}" if additional_context else ""
+    # Create a retriever
+    # chroma_client = chromadb.PersistentClient(path="./chroma_db_new")
+    # pdd_collection = chroma_client.get_or_create_collection("chroma_collection_pdd")
+    # pdd_vector_store = ChromaVectorStore(chroma_collection=pdd_collection)
+    # index_pdd = VectorStoreIndex.from_vector_store(vector_store=pdd_vector_store)
+    retriever = index_pdd.as_retriever(similarity_top_k=10,  metadata_filters={"project_code": project_code})  # Retrieve top 3 most relevant chunks
+    
+    query = "Extract project code, name, description, location, coordinates, status, start date, end date, methodology, and size from the project design document."
+    retrieved_nodes = retriever.retrieve(query)
+    
+    # Format retrieved documents into context
+    retrieved_texts = "\n\n".join([node.text for node in retrieved_nodes])
     
     prompt = f"""
-    You are a carbon offset project validator analyzing a project document. Extract the following project information in a structured format:
+    You are a carbon offset project certifier analyzing a project design document. Extract the following project information in a structured format:
 
     <instructions>
     Extract basic project information from the document and format it in XML.
@@ -47,7 +66,7 @@ async def extract_doc_basicInfo(document_index: str, additional_context: Optiona
     </project_info>
     </output_format>
 
-    Document to analyze: {document_index}{context}
+    Document to analyze: {retrieved_texts}
     """
     
     # Call your preferred LLM API
@@ -172,17 +191,16 @@ async def call_llm_api(prompt: str) -> str:
     """
     Call LLM API with the provided prompt
     """
-    # Replace with your preferred LLM API (OpenAI, Anthropic, etc.)
     headers = {
-        "Authorization": f"Bearer {os.getenv('LLM_API_KEY')}",
         "Content-Type": "application/json"
     }
     
     payload = {
-        "model": "gpt-4",  # Replace with your model
-        "messages": [{"role": "user", "content": prompt}],
+        "model": "deepseek-r1:7b",
+        "prompt": prompt,
         "temperature": 0.2,
-        "max_tokens": 2000
+        "max_tokens": 2000,
+        "stream": False # make this TRUE if you want word by word responses
     }
     
     response = requests.post(API_URL, headers=headers, json=payload)
@@ -190,12 +208,12 @@ async def call_llm_api(prompt: str) -> str:
     if response.status_code != 200:
         raise Exception(f"LLM API error: {response.status_code} {response.text}")
     
-    # Extract the content from response (adjust based on your LLM API)
-    return response.json()["choices"][0]["message"]["content"]
+    # Extract the content from Ollama response
+    return response.json()["response"]
 
 def parse_xml_response(response: str, root_tag: str) -> Dict[str, Any]:
     """
-    Parse XML response from LLM
+    Parse XML response from LLM to become a dictionary
     """
     # Extract XML part from response if needed
     xml_start = response.find(f"<{root_tag}>")
@@ -209,8 +227,33 @@ def parse_xml_response(response: str, root_tag: str) -> Dict[str, Any]:
     # Parse XML
     root = ET.fromstring(xml_content)
     
-    # Convert to dictionary (implementation details omitted)
-    # This would be a recursive function to convert XML to dict
-    # need to implement this shit
-    # Return parsed data
-    return {"parsed_data": "Would be XML converted to dict"}
+    # Convert to dictionary recursively
+    def xml_to_dict(element):
+        result = {}
+        
+        # Handle attributes
+        if element.attrib:
+            result["@attributes"] = element.attrib
+            
+        # Handle children
+        for child in element:
+            child_data = xml_to_dict(child)
+            
+            if child.tag in result:
+                # If tag already exists, convert to list or append
+                if not isinstance(result[child.tag], list):
+                    result[child.tag] = [result[child.tag]]
+                result[child.tag].append(child_data)
+            else:
+                result[child.tag] = child_data
+                
+        # Handle text content
+        text = element.text.strip() if element.text else ""
+        if text and not result:
+            return text
+        elif text:
+            result["#text"] = text
+            
+        return result
+    
+    return xml_to_dict(root)

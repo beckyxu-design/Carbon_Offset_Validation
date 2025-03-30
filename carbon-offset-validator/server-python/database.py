@@ -61,6 +61,7 @@ async def get_project_details(project_code: str):
         ] if geo_response.data else []
     }
 
+
 async def store_analysis_results(project_data, risk_metrics, analysis_results):
     # Insert project
     project_response = supabase.table("projects").insert(project_data).execute()

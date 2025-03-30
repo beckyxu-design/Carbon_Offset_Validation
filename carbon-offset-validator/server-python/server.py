@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 
 from database import get_projects, get_project_details, store_analysis_results
-from llm_service import extract_doc_basicInfo, analyze_policy_risks
+from llm_service import extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
 from file_service import process_uploaded_file, store_file
 from models import ProjectAnalysisRequest, ProjectAnalysisResponse # these are class formats 
 
@@ -70,7 +70,7 @@ async def analyze_project_llm(request: ProjectAnalysisRequest):
         # Generate recommendations and regional analysis
         risk_policy = await analyze_policy_risks(
             request.document_text,
-            request.regional_policies # instead of request, pull from processed and stored policy index 
+            request.regional_policies # NOTE CHAHGE: instead of request, pull from processed and stored policy index 
         )
         
         # Store results in database
