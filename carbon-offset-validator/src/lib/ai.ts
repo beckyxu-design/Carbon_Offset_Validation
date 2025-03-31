@@ -1,4 +1,5 @@
 import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
+import { FeatureCollection } from 'geojson';
 import { toast } from 'sonner';
 import { getProjectData } from './api';
 
@@ -51,6 +52,7 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
 
     // Get geospatial data from the project data
     const geospatialData = projectData.geospatialData || [];
+  
 
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {

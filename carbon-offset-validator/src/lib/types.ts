@@ -81,7 +81,7 @@ export interface AIAnalysisResponse {
   deforestationData: DeforestationData[];
   emissionsData: EmissionsData[];
   pieChartData: PieChartData[];
-  geospatialData: FeatureCollection;
+  geospatialData: GeoData[];
   documents: {
     pdd: Document;
     riskAnalysis: Document;
@@ -122,7 +122,7 @@ export interface UploadedFile {
  */
 export interface GeoData extends Feature {
   type: "Feature";
-  geometry: Geometry;
+  geometry: any;
   properties: {
     [key: string]: any;
   };

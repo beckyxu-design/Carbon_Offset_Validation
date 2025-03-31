@@ -33,25 +33,18 @@ const Results = () => {
             const parsedResult = JSON.parse(storedResult) as AIAnalysisResponse;
             setAnalysisResult(parsedResult);
             
-            // Set the project code for the map
-            if (parsedResult.projectData?.project_code) {
-              setSelectedProjectId(parsedResult.projectData.project_code);
-            }
+            // // Set the project code for the map
+            // if (parsedResult.projectData?.project_code) {
+            //   setSelectedProjectId(parsedResult.projectData.project_code);
+            // }
             
             // Set the geospatial data for the map
             if (parsedResult.geospatialData) {
-              // If geospatialData is already a FeatureCollection, use it directly
-              if (parsedResult.geospatialData.type === 'FeatureCollection') {
-                setGeospatialData(parsedResult.geospatialData);
-              } 
-              // If geospatialData is an array, convert it to a FeatureCollection
-              else if (Array.isArray(parsedResult.geospatialData)) {
-                const featureCollection: FeatureCollection = {
-                  type: "FeatureCollection",
-                  features: parsedResult.geospatialData
-                };
-                setGeospatialData(featureCollection);
-              }
+              // The backend now returns a proper FeatureCollection
+              console.log("Received geospatial data:", parsedResult.geospatialData[0]['geometry']);
+              setGeospatialData(parsedResult.geospatialData[0]['geometry']);
+            } else {
+              console.warn("No valid geospatial data found in the analysis result");
             }
           } catch (error) {
             console.error("Error parsing analysis result:", error);

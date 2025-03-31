@@ -32,11 +32,12 @@ const MapComponent: React.FC = () => {
       
       mapboxgl.accessToken = token;
       
+      // set basemap
       const newMap = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
-        center: sampleProject.coordinates,
-        zoom: 9
+        center: [117.8902, -2.4833],
+        zoom: 5
       });
 
       // Add navigation controls
@@ -46,12 +47,10 @@ const MapComponent: React.FC = () => {
         }),
         'bottom-right'
       );
-
       // Add attributions in a better position
       newMap.addControl(new mapboxgl.AttributionControl({
         compact: true
       }), 'bottom-left');
-
       // Add atmosphere and fog effects
       newMap.on('style.load', () => {
         newMap.setFog({
@@ -60,7 +59,6 @@ const MapComponent: React.FC = () => {
           'horizon-blend': 0.1
         });
       });
-
       map.current = newMap;
 
       // Add project layers when the map is ready
@@ -79,8 +77,8 @@ const MapComponent: React.FC = () => {
           type: 'fill',
           source: 'project-area',
           paint: {
-            'fill-color': '#2563eb',
-            'fill-opacity': 0.2
+            'fill-color': '#F9C80E',
+            'fill-opacity': 0.4
           }
         });
 
@@ -89,7 +87,7 @@ const MapComponent: React.FC = () => {
           type: 'line',
           source: 'project-area',
           paint: {
-            'line-color': '#2563eb',
+            'line-color': '#F9C80E',
             'line-width': 2
           }
         });
@@ -105,7 +103,6 @@ const MapComponent: React.FC = () => {
         map.current?.on('mouseenter', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         });
-
         map.current?.on('mouseleave', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = '';
         });
@@ -124,7 +121,7 @@ const MapComponent: React.FC = () => {
     }
   }, [setSelectedProjectId]);
 
-  // Update map when geospatial data changes
+  // Update map bounding box when geospatial data changes
   useEffect(() => {
     if (!mapInitialized || !map.current) return;
 
@@ -142,6 +139,16 @@ const MapComponent: React.FC = () => {
             const coordinates = feature.geometry.coordinates[0];
             coordinates.forEach((coord: [number, number]) => {
               bounds.extend(coord as mapboxgl.LngLatLike);
+            });
+          } else if (feature.geometry.type === 'MultiPolygon') {
+            // Handle MultiPolygon geometry type
+            const polygons = feature.geometry.coordinates;
+            polygons.forEach(polygon => {
+              // Each polygon has an outer ring (first element)
+              const outerRing = polygon[0];
+              outerRing.forEach((coord: [number, number]) => {
+                bounds.extend(coord as mapboxgl.LngLatLike);
+              });
             });
           } else if (feature.geometry.type === 'Point') {
             bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
@@ -161,58 +168,59 @@ const MapComponent: React.FC = () => {
     }
   }, [mapInitialized, geospatialData]);
 
+
   // Add or remove deforestation layers based on toggle
   useEffect(() => {
     if (!mapInitialized || !map.current) return;
 
     if (showDeforestationLayer) {
       // Add deforestation layers
-      // deforestationLayers.forEach(layer => {
-      //   const sourceId = `deforestation-source-${layer.id}`;
-      //   const layerId = `deforestation-layer-${layer.id}`;
+      deforestationLayers.forEach(layer => {
+        const sourceId = `deforestation-source-${layer.id}`;
+        const layerId = `deforestation-layer-${layer.id}`;
 
-      //   // Add source if it doesn't exist
-      //   if (!map.current?.getSource(sourceId)) {
-      //     map.current?.addSource(sourceId, {
-      //       type: 'geojson',
-      //       data: layer.geojson
-      //     });
-      //   }
+        // Add source if it doesn't exist
+        if (!map.current?.getSource(sourceId)) {
+          map.current?.addSource(sourceId, {
+            type: 'geojson',
+            data: layer.geojson
+          });
+        }
 
-      //   // Add layer if it doesn't exist
-      //   if (!map.current?.getLayer(layerId)) {
-      //     map.current?.addLayer({
-      //       id: layerId,
-      //       type: 'fill',
-      //       source: sourceId,
-      //       layout: {},
-      //       paint: {
-      //         'fill-color': [
-      //           'interpolate',
-      //           ['linear'],
-      //           ['get', 'rate'],
-      //           1, '#FFF587', // low deforestation
-      //           2, '#FF8C64', // medium 
-      //           3, '#FF665A'  // high deforestation
-      //         ],
-      //         'fill-opacity': 0.7
-      //       }
-      //     });
+        // Add layer if it doesn't exist
+        if (!map.current?.getLayer(layerId)) {
+          map.current?.addLayer({
+            id: layerId,
+            type: 'fill',
+            source: sourceId,
+            layout: {},
+            paint: {
+              'fill-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'rate'],
+                1, '#FFF587', // low deforestation
+                2, '#FF8C64', // medium 
+                3, '#FF665A'  // high deforestation
+              ],
+              'fill-opacity': 0.7
+            }
+          });
 
-      //     // Add outline for deforestation layer
-      //     map.current?.addLayer({
-      //       id: `${layerId}-outline`,
-      //       type: 'line',
-      //       source: sourceId,
-      //       layout: {},
-      //       paint: {
-      //         'line-color': '#FF3D00',
-      //         'line-width': 1,
-      //         'line-dasharray': [2, 1]
-      //       }
-      //     });
-      //   }
-      // });
+          // Add outline for deforestation layer
+          map.current?.addLayer({
+            id: `${layerId}-outline`,
+            type: 'line',
+            source: sourceId,
+            layout: {},
+            paint: {
+              'line-color': '#FF3D00',
+              'line-width': 1,
+              'line-dasharray': [2, 1]
+            }
+          });
+        }
+      });
     } else {
       // Remove deforestation layers if they exist
       // deforestationLayers.forEach(layer => {
