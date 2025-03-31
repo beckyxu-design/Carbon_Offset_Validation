@@ -62,19 +62,12 @@ async def get_project_details(project_code: str):
     }
 
 
-async def store_analysis_results(project_data, risk_metrics, analysis_results):
+async def store_analysis_results(project_data, risk_metrics, risk_policy):
+    
     # Insert project
     project_response = supabase.table("projects").insert(project_data).execute()
     project_id = project_response.data[0]["id"]
     # insert project code 
-    
-    # Insert summary
-    supabase.table("project_summary").insert({
-        "project_id": project_id,
-        "summary": analysis_results["summary"]["overall_summary"],
-        "recommendations": [r["action"] for r in analysis_results["summary"]["recommendations"]],
-        "additional_insights": analysis_results["summary"]["additional_insights"]
-    }).execute()
     
     # Insert risk metrics
     for metric in risk_metrics:
@@ -86,6 +79,7 @@ async def store_analysis_results(project_data, risk_metrics, analysis_results):
             "likelihood": metric["likelihood"],
             "description": metric["description"]
         }).execute()
+    
     
     return project_id
 
@@ -142,4 +136,60 @@ async def insert_project_GISdata(project_code: str, gis_results: Dict[str, Any])
         return False
     except Exception as e:
         print(f"Error inserting project data: {e}")
+        return False
+    
+    
+async def update_regional_analy_summary(project_code: str, risk_policy: Dict[str, Any]):
+    """
+    Update or insert a summary for a project in the project_summary table.
+    
+    Args:
+        project_code: The code of the existing project
+        risk_policy: Dictionary containing summary information with the structure:
+                    {
+                        "summary": {
+                            "overall_summary": str,
+                            "recommendations": List[Dict[str, str]],
+                            "additional_insights": str
+                        }
+                    }
+    
+    Returns:
+        bool: True if data was updated/inserted successfully
+    """
+    try:
+        # Find the project by project_code
+        project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()
+        
+        if not project_response.data:
+            raise ValueError(f"No project found with code: {project_code}")
+        
+        project_id = project_response.data["id"]
+        
+        # Check if a summary already exists for this project
+        existing_summary = supabase.table("project_summary").select("*").eq("project_id", project_id).execute()
+        
+        summary_data = {
+            "project_id": project_id,
+            "summary": risk_policy["summary"]["overall_summary"],
+            "recommendations": [r["action"] for r in risk_policy["summary"]["recommendations"]],
+            "additional_insights": risk_policy["summary"]["additional_insights"]
+        }
+        
+        if existing_summary.data:
+            # Update existing summary
+            supabase.table("project_summary").update(summary_data).eq("project_id", project_id).execute()
+            print(f"Updated summary for project with code: {project_code}")
+        else:
+            # Insert new summary
+            supabase.table("project_summary").insert(summary_data).execute()
+            print(f"Inserted new summary for project with code: {project_code}")
+        
+        return True
+    
+    except ValueError as ve:
+        print(f"Project error: {ve}")
+        return False
+    except Exception as e:
+        print(f"Error updating project summary: {e}")
         return False
