@@ -15,7 +15,8 @@ const MapComponent: React.FC = () => {
   const { 
     selectedProjectId, 
     showDeforestationLayer,
-    setSelectedProjectId
+    setSelectedProjectId,
+    geospatialData
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ const MapComponent: React.FC = () => {
         // Add project area layer
         map.current?.addSource('project-area', {
           type: 'geojson',
-          data: sampleGeoJSON
+          data: geospatialData || sampleGeoJSON
         });
 
         map.current?.addLayer({
@@ -122,6 +123,43 @@ const MapComponent: React.FC = () => {
       toast.error(errorMessage);
     }
   }, [setSelectedProjectId]);
+
+  // Update map when geospatial data changes
+  useEffect(() => {
+    if (!mapInitialized || !map.current) return;
+
+    // If we have a map source and geospatial data, update the source
+    if (map.current.getSource('project-area') && geospatialData) {
+      (map.current.getSource('project-area') as mapboxgl.GeoJSONSource).setData(geospatialData);
+      
+      // Try to fit the map to the bounds of the geospatial data
+      try {
+        // Create a bounding box for the features
+        const bounds = new mapboxgl.LngLatBounds();
+        
+        geospatialData.features.forEach(feature => {
+          if (feature.geometry.type === 'Polygon') {
+            const coordinates = feature.geometry.coordinates[0];
+            coordinates.forEach((coord: [number, number]) => {
+              bounds.extend(coord as mapboxgl.LngLatLike);
+            });
+          } else if (feature.geometry.type === 'Point') {
+            bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
+          }
+        });
+        
+        // Only zoom to bounds if we have valid bounds
+        if (!bounds.isEmpty()) {
+          map.current.fitBounds(bounds, {
+            padding: 50,
+            maxZoom: 15
+          });
+        }
+      } catch (error) {
+        console.error('Error fitting map to bounds:', error);
+      }
+    }
+  }, [mapInitialized, geospatialData]);
 
   // Add or remove deforestation layers based on toggle
   useEffect(() => {

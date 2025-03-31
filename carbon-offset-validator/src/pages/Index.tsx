@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
 
+
 const Index = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();

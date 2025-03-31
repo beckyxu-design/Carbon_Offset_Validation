@@ -2,6 +2,7 @@ import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
 import { toast } from 'sonner';
 import { getProjectData } from './api';
 
+
 // Get the base URL from environment variables, defaulting to localhost for development
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 
@@ -45,13 +46,16 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     // Transform pie chart data with proper null checks
     const pieChartData = (projectData.pieChartData || []).map(d => ({
       category: d.category || 'Unknown',
-      value: d.percentage || 0 // Note: renamed from percentage to value for frontend
+      value: d.value || d.percentage || 0 // Handle both value and percentage fields
     }));
+
+    // Get geospatial data from the project data
+    const geospatialData = projectData.geospatialData || [];
 
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {
       projectData: projectData.project,
-      queryResponse: "",
+      queryResponse: '',
       summary: {
         summary: projectData.summary && typeof projectData.summary === 'object' 
           ? (projectData.summary.summary || projectData.summary.overall_summary || 'No analysis available.')
@@ -79,6 +83,7 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
       deforestationData,
       emissionsData,
       pieChartData,
+      geospatialData,
       documents: {
         pdd: defaultDoc,
         riskAnalysis: defaultDoc
@@ -126,6 +131,7 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     }
   }
 };
+
 
 export const processQuestion = async (request: { query: string, projectCode: string }): Promise<string> => {
   // This function allows users to chat with the uploaded document and the analysis result

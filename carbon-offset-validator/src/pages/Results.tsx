@@ -8,13 +8,14 @@ import { toast } from "sonner";
 import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FeatureCollection } from 'geojson';
 
 const Results = () => {
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { setSelectedProjectId } = useMap();
+  const { setSelectedProjectId, setGeospatialData } = useMap();
   const { projectCode } = useParams<{ projectCode: string }>();
 
   useEffect(() => {
@@ -35,6 +36,22 @@ const Results = () => {
             // Set the project code for the map
             if (parsedResult.projectData?.project_code) {
               setSelectedProjectId(parsedResult.projectData.project_code);
+            }
+            
+            // Set the geospatial data for the map
+            if (parsedResult.geospatialData) {
+              // If geospatialData is already a FeatureCollection, use it directly
+              if (parsedResult.geospatialData.type === 'FeatureCollection') {
+                setGeospatialData(parsedResult.geospatialData);
+              } 
+              // If geospatialData is an array, convert it to a FeatureCollection
+              else if (Array.isArray(parsedResult.geospatialData)) {
+                const featureCollection: FeatureCollection = {
+                  type: "FeatureCollection",
+                  features: parsedResult.geospatialData
+                };
+                setGeospatialData(featureCollection);
+              }
             }
           } catch (error) {
             console.error("Error parsing analysis result:", error);
@@ -60,7 +77,7 @@ const Results = () => {
     };
 
     fetchData();
-  }, [navigate, setSelectedProjectId, projectCode]);
+  }, [navigate, setSelectedProjectId, setGeospatialData, projectCode]);
 
   const handleGoBack = () => {
     navigate('/');
@@ -108,7 +125,7 @@ const Results = () => {
   }
 
   return (
-    <SplitLayout showMap={false}>
+    <SplitLayout showMap={true}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
           <div className="p-4">

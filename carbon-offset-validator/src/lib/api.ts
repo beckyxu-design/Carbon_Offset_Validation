@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { Project, Summary, RiskMetric, DeforestationData, EmissionsData, PieChartData } from './types';
+import { Project, Summary, RiskMetric, DeforestationData, EmissionsData, PieChartData, ProjectDataResponse} from './types';
 
 // Get the base URL from environment variables, defaulting to localhost for development
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
+
 
 // API endpoints
 const endpoints = {
@@ -19,15 +20,6 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-// Type for project data response from server
-interface ProjectDataResponse {
-  project: Project;
-  summary: Summary;
-  riskMetrics: RiskMetric[];
-  timeSeriesData: (DeforestationData | EmissionsData)[];
-  pieChartData: PieChartData[];
-  // geospatialData: GeoData[];
-}
 
 // Function to upload a file
 export const uploadFile = async (file: File): Promise<ApiResponse<{ fileId: string, text: string }>> => {
@@ -51,6 +43,37 @@ export const uploadFile = async (file: File): Promise<ApiResponse<{ fileId: stri
     return { 
       data: null, 
       error: error?.response?.data?.error || error?.message || 'Failed to upload file'
+    };
+  }
+};
+
+// Function to upload a KML file (alias for uploadFile for backward compatibility)
+export const uploadKmlFile = uploadFile;
+
+// Function to upload a project document
+export const uploadProjectDocument = async (projectCode: string, file: File, documentType: string): Promise<ApiResponse<{ fileId: string, text: string }>> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('projectCode', projectCode);
+    formData.append('documentType', documentType);
+
+    const response = await axios.post<{ fileId: string, text: string }>(
+      `${baseUrl}${endpoints.upload}/document`, 
+      formData, 
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Error uploading project document:', error);
+    return { 
+      data: null, 
+      error: error?.response?.data?.error || error?.message || 'Failed to upload project document'
     };
   }
 };
@@ -136,4 +159,3 @@ export const analyzeProject = async (
     };
   }
 };
-
