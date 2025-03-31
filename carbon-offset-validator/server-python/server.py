@@ -6,6 +6,7 @@
 # @app.post("/api/upload")
 # @app.post("/api/analyze")
 # @app.post("/api/generate-text")
+# @app.post("/api/projects/{project_code}/update-summary")
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +15,7 @@ from typing import List, Optional
 import os
 from dotenv import load_dotenv
 
-from database import get_projects, get_project_details, store_analysis_results
+from database import get_projects, get_project_details, store_analysis_results, update_regional_analy_summary
 from llm_service import extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
 from file_service import process_uploaded_file, store_file
 from models import ProjectAnalysisRequest, ProjectAnalysisResponse # these are class formats 
@@ -142,6 +143,19 @@ async def generate_text(request: dict):
         
         return {"response": response}
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/projects/{project_code}/update-summary")
+async def update_project_summary(project_code: str, request: dict):
+    try:
+        success = await update_regional_analy_summary(project_code, request)
+        if success:
+            return {"status": "success", "message": f"Summary updated for project {project_code}"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update project summary")
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

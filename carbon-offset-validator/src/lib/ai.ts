@@ -54,13 +54,19 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
       queryResponse: "",
       summary: {
         summary: projectData.summary && typeof projectData.summary === 'object' 
-          ? (projectData.summary.analysis_text || 'No analysis available.')
+          ? (projectData.summary.summary || projectData.summary.overall_summary || 'No analysis available.')
           : 'No analysis available.',
-        recommendations: projectData.summary && Array.isArray(projectData.summary.recommendations) 
-          ? projectData.summary.recommendations 
+        recommendations: projectData.summary && typeof projectData.summary === 'object'
+          ? (Array.isArray(projectData.summary.recommendations)
+              ? projectData.summary.recommendations.map(rec => 
+                  typeof rec === 'string' 
+                    ? { action: rec, priority: 'Medium' } 
+                    : { action: rec.action || 'Unknown action', priority: rec.priority || 'Medium' }
+                )
+              : [])
           : [],
         additionalInsights: projectData.summary && typeof projectData.summary === 'object'
-          ? (projectData.summary.additional_insights || 'No additional insights available.')
+          ? (projectData.summary.additional_insights || projectData.summary.additionalInsights || 'No additional insights available.')
           : 'No additional insights available.',
       },
       riskMetrics: (projectData.riskMetrics || []).map(metric => ({
