@@ -10,8 +10,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const MapComponent: React.FC = () => {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null); //A React ref that will be attached to a div element in your JSX
+  const map = useRef<mapboxgl.Map | null>(null); //A ref that will store the Mapbox map instance
   const { 
     selectedProjectId, 
     showDeforestationLayer,
@@ -21,6 +21,7 @@ const MapComponent: React.FC = () => {
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  //loading basemap and load the project geojson
   useEffect(() => {
     if (!mapContainerRef.current || map.current) return;
 
@@ -121,7 +122,7 @@ const MapComponent: React.FC = () => {
     }
   }, [setSelectedProjectId]);
 
-  // Update map bounding box when geospatial data changes
+  // Update map bounding box to locate project geojson
   useEffect(() => {
     if (!mapInitialized || !map.current) return;
 
@@ -167,7 +168,6 @@ const MapComponent: React.FC = () => {
       }
     }
   }, [mapInitialized, geospatialData]);
-
 
   // Add or remove deforestation layers based on toggle
   useEffect(() => {
