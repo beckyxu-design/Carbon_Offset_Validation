@@ -33,6 +33,23 @@ async def get_project_details(project_code: str):
     # Get summary
     summary_response = supabase.table("project_summary").select("*").eq("project_id", project_id).single().execute()
     
+    # Format summary data to match frontend expectations
+    summary_data = summary_response.data
+    if summary_data:
+        # Convert recommendations from string array to object array with action property
+        if isinstance(summary_data.get('recommendations'), list):
+            summary_data['recommendations'] = [
+                {'action': rec, 'priority': 'Medium'} if isinstance(rec, str) else rec 
+                for rec in summary_data['recommendations']
+            ]
+        
+        # Ensure we have the right field names
+        if 'summary' not in summary_data and 'overall_summary' in summary_data:
+            summary_data['summary'] = summary_data['overall_summary']
+        
+        if 'additionalInsights' not in summary_data and 'additional_insights' in summary_data:
+            summary_data['additionalInsights'] = summary_data['additional_insights']
+    
     # Get risk metrics
     risk_response = supabase.table("risk_summary_metrics").select("*").eq("project_id", project_id).execute()
     
@@ -43,22 +60,15 @@ async def get_project_details(project_code: str):
     pie_chart_response = supabase.table("pie_chart_data").select("*").eq("project_id", project_id).execute()
     
     # Get geospatial data
-    geo_response = supabase.table("geo_data").select("geometry, properties").eq("project_id", project_id).execute()
+    geo_response = supabase.table("geo_data").select("geometry").eq("project_id", project_id).execute()
     
     return {
         "project": project,
-        "summary": summary_response.data,
+        "summary": summary_data,
         "riskMetrics": risk_response.data,
         "timeSeriesData": time_series_response.data,
         "pieChartData": pie_chart_response.data,
-        "geospatialData": [
-            {
-                "type": "Feature",
-                "geometry": item["geometry"],
-                "properties": item["properties"]
-            }
-            for item in geo_response.data
-        ] if geo_response.data else []
+        "geospatialData": geo_response.data
     }
 
 
@@ -80,8 +90,16 @@ async def store_analysis_results(project_data, risk_metrics, risk_policy):
             "description": metric["description"]
         }).execute()
     
+    # Insert regional policy summary
+    supabase.table("project_summary").insert({
+        "project_id": project_id,
+        "summary": risk_policy["summary"]["overall_summary"],
+        "recommendations": [r["action"] for r in risk_policy["summary"]["recommendations"]],
+        "additional_insights": risk_policy["summary"]["additional_insights"]
+    }).execute()
     
     return project_id
+
 
 async def insert_project_GISdata(project_code: str, gis_results: Dict[str, Any]):
     """
