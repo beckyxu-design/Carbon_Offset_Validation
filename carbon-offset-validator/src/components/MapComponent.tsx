@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
+// We'll use a Mapbox-hosted tileset instead of a local GeoTIFF
+// In a real application, replace with your actual tileset ID
 const MapComponent: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null); //A React ref that will be attached to a div element in your JSX
   const map = useRef<mapboxgl.Map | null>(null); //A ref that will store the Mapbox map instance
@@ -20,6 +22,7 @@ const MapComponent: React.FC = () => {
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deforestationLoaded, setDeforestationLoaded] = useState(false);
 
   //loading basemap and load the project geojson
   useEffect(() => {
@@ -37,21 +40,17 @@ const MapComponent: React.FC = () => {
       const newMap = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [117.8902, -2.4833],
+        center: [113.9213, -0.7893],
         zoom: 5
       });
 
       // Add navigation controls
       newMap.addControl(
-        new mapboxgl.NavigationControl({
-          visualizePitch: true,
-        }),
+        new mapboxgl.NavigationControl({visualizePitch: true}),
         'bottom-right'
       );
       // Add attributions in a better position
-      newMap.addControl(new mapboxgl.AttributionControl({
-        compact: true
-      }), 'bottom-left');
+      newMap.addControl(new mapboxgl.AttributionControl({compact: true}), 'bottom-left');
       // Add atmosphere and fog effects
       newMap.on('style.load', () => {
         newMap.setFog({
@@ -92,6 +91,51 @@ const MapComponent: React.FC = () => {
             'line-width': 2
           }
         });
+        const TILESET_ID = 'ichobecky.cus4ehcj';
+        // Add deforestation layer using a Mapbox-hosted tileset
+        try {
+          // beckyzqxu.b217gxob
+          // Using a standard Mapbox tileset that we know exists
+          map.current?.addSource('deforestation-source', {
+            type: 'raster',
+            // Using Mapbox's satellite tileset as a placeholder
+            tiles: [
+              `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+            ],
+            tileSize: 256
+          });
+          // map.current?.addSource('deforestation-source', {
+          //   type: 'raster',
+          //   // Using Mapbox's satellite tileset as a placeholder
+          //   tiles: [
+          //     `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+          //   ],
+          //   tileSize: 256
+          // });
+
+          // Add raster layer with initial visibility based on context
+          map.current?.addLayer({
+            id: 'deforestation-layer',
+            type: 'raster',
+            source: 'deforestation-source',
+            paint: {
+              'raster-opacity': 0.9
+              ,
+              // 'raster-saturation': -0.9, // Make it more grayscale to represent deforestation data
+              // 'raster-contrast': 0.2,
+              // 'raster-brightness-min': 0.1
+            },
+            layout: {
+              visibility: showDeforestationLayer ? 'visible' : 'none'
+            }
+          });
+          
+          setDeforestationLoaded(true);
+          console.log('Deforestation layer loaded successfully');
+        } catch (error) {
+          console.error('Error loading deforestation layer:', error);
+          toast.error('Failed to load deforestation layer');
+        }
 
         // Add click handler
         map.current?.on('click', 'project-area-fill', (e) => {
@@ -120,7 +164,7 @@ const MapComponent: React.FC = () => {
       setError(errorMessage);
       toast.error(errorMessage);
     }
-  }, [setSelectedProjectId]);
+  }, [setSelectedProjectId, geospatialData, showDeforestationLayer]);
 
   // Update map bounding box to locate project geojson
   useEffect(() => {
@@ -169,114 +213,21 @@ const MapComponent: React.FC = () => {
     }
   }, [mapInitialized, geospatialData]);
 
-  // Add or remove deforestation layers based on toggle
+  // Toggle deforestation layer visibility
   useEffect(() => {
     if (!mapInitialized || !map.current) return;
 
-    if (showDeforestationLayer) {
-      // Add deforestation layers
-      deforestationLayers.forEach(layer => {
-        const sourceId = `deforestation-source-${layer.id}`;
-        const layerId = `deforestation-layer-${layer.id}`;
-
-        // Add source if it doesn't exist
-        if (!map.current?.getSource(sourceId)) {
-          map.current?.addSource(sourceId, {
-            type: 'geojson',
-            data: layer.geojson
-          });
-        }
-
-        // Add layer if it doesn't exist
-        if (!map.current?.getLayer(layerId)) {
-          map.current?.addLayer({
-            id: layerId,
-            type: 'fill',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'fill-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'rate'],
-                1, '#FFF587', // low deforestation
-                2, '#FF8C64', // medium 
-                3, '#FF665A'  // high deforestation
-              ],
-              'fill-opacity': 0.7
-            }
-          });
-
-          // Add outline for deforestation layer
-          map.current?.addLayer({
-            id: `${layerId}-outline`,
-            type: 'line',
-            source: sourceId,
-            layout: {},
-            paint: {
-              'line-color': '#FF3D00',
-              'line-width': 1,
-              'line-dasharray': [2, 1]
-            }
-          });
-        }
-      });
+    if (map.current.getLayer('deforestation-layer')) {
+      map.current.setLayoutProperty(
+        'deforestation-layer',
+        'visibility',
+        showDeforestationLayer ? 'visible' : 'none'
+      );
+      console.log(`Deforestation layer visibility set to: ${showDeforestationLayer ? 'visible' : 'none'}`);
     } else {
-      // Remove deforestation layers if they exist
-      // deforestationLayers.forEach(layer => {
-      //   const layerId = `deforestation-layer-${layer.id}`;
-      //   const outlineLayerId = `${layerId}-outline`;
-
-      //   if (map.current?.getLayer(outlineLayerId)) {
-      //     map.current.removeLayer(outlineLayerId);
-      //   }
-
-      //   if (map.current?.getLayer(layerId)) {
-      //     map.current.removeLayer(layerId);
-      //   }
-      // });
+      console.warn('Deforestation layer not found in map');
     }
   }, [mapInitialized, showDeforestationLayer]);
-
-  // Zoom to selected project
-  useEffect(() => {
-    if (!mapInitialized || !map.current || !selectedProjectId) return;
-
-    // Highlight selected project
-    // sampleProjects.forEach(p => {
-    //   const layerId = `layer-${p.id}`;
-    //   if (map.current?.getLayer(layerId)) {
-    //     map.current?.setPaintProperty(
-    //       layerId,
-    //       'fill-color',
-    //       p.id === selectedProjectId ? '#FFB74D' : '#3BB2D0'
-    //     );
-    //     map.current?.setPaintProperty(
-    //       layerId,
-    //       'fill-opacity',
-    //       p.id === selectedProjectId ? 0.7 : 0.5
-    //     );
-    //   }
-    // });
-
-    // Calculate bounds of the selected project
-    // const bounds = new mapboxgl.LngLatBounds();
-    // project.geojson.features.forEach(feature => {
-    //   if (feature.geometry.type === 'Polygon') {
-    //     const coordinates = feature.geometry.coordinates[0];
-    //     coordinates.forEach(coord => {
-    //       bounds.extend([coord[0], coord[1]]);
-    //     });
-    //   }
-    // });
-
-    // Zoom to the selected project
-    // map.current.fitBounds(bounds, {
-    //   padding: 50,
-    //   maxZoom: 12,
-    //   duration: 1000
-    // });
-  }, [selectedProjectId, mapInitialized]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">
