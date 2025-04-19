@@ -1,15 +1,18 @@
 import axios from 'axios';
-import { Project, Summary, RiskMetric, DeforestationData, EmissionsData, PieChartData, ProjectDataResponse} from './types';
+import { Project, Summary, RiskMetric, TimeSeriesData, PieChartData, ProjectDataResponse} from './types';
 
 // Get the base URL from environment variables, defaulting to localhost for development
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 
 
 // API endpoints
+// these endpoints are from the database.py
 const endpoints = {
   projects: '/api/projects',
+  // checki f project exists
   projectExists: (project_code: string) => `/api/projects/${project_code}/exists`,
-  projectDetail: (project_code: string) => `/api/projects/${project_code}`,
+  // get all project details
+  projectDetail: (project_code: string) => `/api/projects/${project_code}`, 
   landuseTimeSeries: (project_code: string) => `/api/projects/${project_code}/landuse-timeseries`,
   analyze: '/api/analyze',
   upload: '/api/upload',
@@ -80,7 +83,7 @@ export const uploadProjectDocument = async (projectCode: string, file: File, doc
 };
 
 // Fetch project data by project project_code
-//A promise is a JavaScript object representing the eventual completion or failure of an asynchronous operation.
+// A promise is a JavaScript object representing the eventual completion or failure of an asynchronous operation.
 // a Promise is an object that represents a future result or error. It can have three states:
 // Pending: Operation is ongoing.
 // Fulfilled (Resolved): Operation succeeded, promise returns a value.
@@ -105,7 +108,7 @@ export const getProjectData = async (projectCode?: string): Promise<ApiResponse<
       };
     }
     
-    // Fetch a specific project by code
+    // Fetch a specific project data by project code
     const response = await axios.get<ProjectDataResponse>(
       `${baseUrl}${endpoints.projectDetail(projectCode)}`
     );

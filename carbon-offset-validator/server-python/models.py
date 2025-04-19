@@ -50,6 +50,6 @@ class ProjectAnalysisResponse(BaseModel):
     queryResponse: str
     summary: Summary
     riskMetrics: List[RiskMetric]
-    deforestationData: List[Dict[str, Any]]
-    emissionsData: List[Dict[str, Any]]
+    timeSeriesData: List[Dict[str, Any]]
+    # emissionsData: List[Dict[str, Any]]
     pieChartData: List[Dict[str, Any]]

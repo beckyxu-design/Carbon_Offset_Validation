@@ -22,13 +22,12 @@ const Results = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('Fetching data for project:', projectCode);
         setIsLoading(true);
         setError(null);
 
         // Try to get the analysis result from sessionStorage
         const storedResult = sessionStorage.getItem('analysisResult');
-        console.log('store result is :', storedResult);
+        // console.log('store result is :', storedResult);
         
         if (storedResult) {
           try {
@@ -37,22 +36,25 @@ const Results = () => {
             // If we have a project code, fetch the latest data from the API
             if (projectCode && parsedResult.projectData?.project_code) {
               try {
-                // Fetch the latest project data from the API
-                const apiResponse = await getProjectData(projectCode);
+                // Fetch the latest project data from the AP
+                // const apiResponse = await getProjectData(projectCode);
+                setAnalysisResult(parsedResult)
                 
-                if (apiResponse.data) {
-                  console.log('API data:', apiResponse.data);
+                // if (apiResponse.data) {
+                //   console.log('API data:', apiResponse.data);
                   
-                  // Merge the API data with the stored result
-                  // This ensures we get the latest land use time series data
-                  setAnalysisResult({
-                    ...parsedResult,
-                    landuseTimeSeriesData: apiResponse.data.landuseTimeSeriesData || []
-                  });
-                } else {
-                  // If API call fails, use the stored result
-                  setAnalysisResult(parsedResult);
-                }
+                //   // Merge the API data with the stored result
+                //   // This ensures we get the latest land use time series data and time series data
+                //   setAnalysisResult({
+                //     ...parsedResult,
+                //     // timeSeriesData: apiResponse.data.timeSeriesData || [],
+                //     // landuseTimeSeriesData: apiResponse.data.landuseTimeSeriesData || []
+                //   });
+                // } else {
+                //   // If API call fails, use the stored result
+                //   setAnalysisResult(parsedResult);
+                // }
+                
               } catch (apiError) {
                 console.error('Error fetching API data:', apiError);
                 // If API call fails, use the stored result

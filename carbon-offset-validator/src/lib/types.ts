@@ -17,18 +17,18 @@ export interface Project {
 /**
  * Deforestation data interface
  */
-export interface DeforestationData {
-  year: number;
-  hectares: number;
+export interface TimeSeriesData {
+  timestamp: string;
+  deforestation_area: number;
 }
 
-/**
- * Emissions data interface
- */
-export interface EmissionsData {
-  year: number;
-  tonnes: number;
-}
+// /**
+//  * Emissions data interface
+//  */
+// export interface EmissionsData {
+//   timestamp: number;
+//   tonnes: number;
+// }
 
 /**
  * Land use time series data interface
@@ -95,8 +95,7 @@ export interface AIAnalysisResponse {
   queryResponse: string;
   summary: Summary;
   riskMetrics: RiskMetric[];
-  deforestationData: DeforestationData[];
-  emissionsData: EmissionsData[];
+  timeSeriesData: TimeSeriesData[];
   pieChartData: PieChartData[];
   geospatialData: GeoData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
@@ -154,7 +153,7 @@ export interface ProjectDataResponse {
   projects?: Project[];  // Optional array of projects for listing all projects
   summary: Summary;
   riskMetrics: RiskMetric[];
-  timeSeriesData: (DeforestationData | EmissionsData)[];
+  timeSeriesData: TimeSeriesData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
   pieChartData: PieChartData[];
   geospatialData: GeoData[];

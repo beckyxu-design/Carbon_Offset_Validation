@@ -39,6 +39,7 @@ app.add_middleware(
 async def get_all_projects():
     return await get_projects()
 
+# this is the api to get all project details from supabase
 @app.get("/api/projects/{project_code}")
 async def get_project(project_code: str):
     return await get_project_details(project_code)
@@ -89,7 +90,7 @@ async def analyze_project_llm(request: ProjectAnalysisRequest):
             "summary": risk_policy["summary"], # update this summary to 
             "riskMetrics": risk_metrics,
             # these functions should create with GIS analysis...  
-            # "deforestationData": risk_policy["deforestation_data"],
+            "timeSeriesData": risk_policy["timeSeriesData"],
             # "emissionsData": risk_policy["emissions_data"],
             # "pieChartData": risk_policy["pie_chart_data"],
         }
