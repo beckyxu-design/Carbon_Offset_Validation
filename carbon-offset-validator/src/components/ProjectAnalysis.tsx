@@ -36,9 +36,10 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        {/* Debug log for timeSeriesData */}
         <DataVisualization 
-          deforestationData={data.deforestationData} 
-          emissionsData={data.emissionsData} 
+          timeSeriesData={data.timeSeriesData || []} 
+          // emissionsData={data.timeSeriesData} 
         />
         {/* <LandusePieChart data={data.pieChartData} /> */}
       </div>

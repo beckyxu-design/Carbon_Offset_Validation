@@ -1,24 +1,38 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DeforestationData, EmissionsData } from "@/lib/types";
+import { TimeSeriesData } from "@/lib/types";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TreeDeciduous, BarChart4 } from "lucide-react";
 
 interface DataVisualizationProps {
-  deforestationData: DeforestationData[];
-  emissionsData: EmissionsData[];
+  timeSeriesData: TimeSeriesData[];
+  // emissionsData: EmissionsData[];
 }
 
 const DataVisualization: React.FC<DataVisualizationProps> = ({
-  deforestationData,
-  emissionsData
+  timeSeriesData,
+  // emissionsData
 }) => {
   const [activeTab, setActiveTab] = useState<string>("deforestation");
   
+  useEffect(() => {
+    console.log("TimeSeriesData received:", timeSeriesData);
+    if (timeSeriesData && timeSeriesData.length > 0) {
+      console.log("First data point:", timeSeriesData[0]);
+      console.log("Data keys:", Object.keys(timeSeriesData[0]));
+    } else {
+      console.log("No time series data available or empty array");
+    }
+  }, [timeSeriesData]);
+  
   const CustomTooltip = ({ active, payload, label, dataType }: any) => {
-    if (!active || !payload || !payload.length) return null;
+    if (!active || !payload || !payload.length) {
+      console.log("Tooltip not showing. Payload:", payload);
+      return null;
+    }
+    
+    console.log("Tooltip payload:", payload);
     
     return (
       <div className="bg-white p-3 rounded-md shadow-lg border border-border">
@@ -51,7 +65,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
           <TabsList className="grid grid-cols-2 bg-secondary/50">
             <TabsTrigger value="deforestation" className="flex items-center">
               <TreeDeciduous className="h-4 w-4 mr-2" />
-              Deforestation
+              Forest Loss
             </TabsTrigger>
             <TabsTrigger value="emissions">
               <svg className="h-4 w-4 mr-2 inline" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -64,80 +78,100 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
           
           <TabsContent value="deforestation" className="space-y-4">
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={deforestationData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-                  barSize={20}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis 
-                    dataKey="year" 
-                    label={{ value: 'Year', position: 'insideBottom', offset: -15 }}
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: 'Hectares', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      style: { textAnchor: 'middle' }
-                    }} 
-                  />
-                  <Tooltip content={<CustomTooltip dataType="deforestation" />} />
-                  <Legend verticalAlign="top" height={36} />
-                  <Bar 
-                    dataKey="hectares" 
-                    name="Deforested Area (hectares)" 
-                    fill="#3b82f6" 
-                    animationDuration={1500}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {timeSeriesData.length === 0 && (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No deforestation data available
+                </div>
+              )}
+              {timeSeriesData.length > 0 && (
+                <>
+                  {console.log("Rendering bar chart with data:", timeSeriesData)}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={timeSeriesData}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                      barSize={20}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis 
+                        dataKey="timestamp" 
+                        label={{ value: 'Year', position: 'insideBottom', offset: -15 }}
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Forest Loss (hectares)', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          style: { textAnchor: 'middle' }
+                        }} 
+                      />
+                      <Tooltip content={<CustomTooltip dataType="deforestation" />} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Bar 
+                        dataKey="deforestation_area" 
+                        name="Forest Loss (hectares)" 
+                        fill="#3b82f6" 
+                        animationDuration={1500}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </>
+              )}
             </div>
             
             <div className="text-sm text-muted-foreground">
-              <p>This chart shows the annual deforestation rates in hectares within the project area over the past decade.</p>
+              <p>This chart shows the annual forest lost with 10km buffer around the project area over the past decades.</p>
             </div>
           </TabsContent>
           
           <TabsContent value="emissions" className="space-y-4">
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={emissionsData}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis 
-                    dataKey="year" 
-                    label={{ value: 'Year', position: 'insideBottom', offset: -15 }}
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: 'Tonnes CO₂e', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      style: { textAnchor: 'middle' }
-                    }} 
-                  />
-                  <Tooltip content={<CustomTooltip dataType="emissions" />} />
-                  <Legend verticalAlign="top" height={36} />
-                  <Line 
-                    type="monotone" 
-                    dataKey="tonnes" 
-                    name="CO₂ Emissions (tonnes)" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: 'white' }}
-                    animationDuration={1500}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {timeSeriesData.length === 0 && (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No emissions data available
+                </div>
+              )}
+              {timeSeriesData.length > 0 && (
+                <>
+                  {console.log("Rendering line chart with data:", timeSeriesData)}
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={timeSeriesData}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis 
+                        dataKey="timestamp" 
+                        label={{ value: 'Year', position: 'insideBottom', offset: -15 }}
+                      />
+                      <YAxis 
+                        label={{ 
+                          value: 'Forest Loss (hectares)', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          style: { textAnchor: 'middle' }
+                        }} 
+                      />
+                      <Tooltip content={<CustomTooltip dataType="emissions" />} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="deforestation_area" 
+                        name="Forest Loss (hectares)" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: 'white' }}
+                        animationDuration={1500}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </>
+              )}
             </div>
             
             <div className="text-sm text-muted-foreground">
-              <p>This chart shows the estimated annual carbon emissions (in tonnes of CO₂ equivalent) associated with deforestation in the project area.</p>
+              <p>This chart shows the forest loss trend over time within a 10km buffer around the project area.</p>
             </div>
           </TabsContent>
         </Tabs>

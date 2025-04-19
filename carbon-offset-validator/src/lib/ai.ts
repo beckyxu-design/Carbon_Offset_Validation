@@ -30,19 +30,10 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     };
 
     // Transform time series data into the format expected by the frontend with proper null checks
-    const deforestationData = (projectData.timeSeriesData || [])
-      .filter(d => d && d.metric_type === 'deforestation')
-      .map(d => ({
-        year: new Date(d.timestamp || '').getFullYear(),
-        hectares: d.value || 0
-      }));
-
-    const emissionsData = (projectData.timeSeriesData || [])
-      .filter(d => d && d.metric_type === 'emissions')
-      .map(d => ({
-        year: new Date(d.timestamp || '').getFullYear(),
-        tonnes: d.value || 0
-      }));
+    const timeSeriesData = (projectData.timeSeriesData || []).map(d => ({
+      timestamp: d.timestamp || '',
+      deforestation_area: d.deforestation_area || 0
+    }));
 
     // Transform pie chart data with proper null checks
     const pieChartData = (projectData.pieChartData || []).map(d => ({
@@ -98,8 +89,7 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
         likelihood: (metric.likelihood as 'Unlikely' | 'Possible' | 'Likely') || 'Possible',
         description: metric.description || `Analysis of ${metric.category || 'Unknown'} risk factor`
       })),
-      deforestationData,
-      emissionsData,
+      timeSeriesData,
       pieChartData,
       geospatialData,
       landuseTimeSeriesData,
@@ -150,7 +140,6 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     }
   }
 };
-
 
 export const processQuestion = async (request: { query: string, projectCode: string }): Promise<string> => {
   // This function allows users to chat with the uploaded document and the analysis result

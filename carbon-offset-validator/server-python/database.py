@@ -1,6 +1,7 @@
 # database.py
 # manage project data retrival and upload with supabase
-# get_projects(): return all projects in db # get_project_details(project_code: str): return project details of one project
+# get_projects(): return all projects in db 
+# get_project_details(): return stored project related data
 # store_analysis_results(project_data, risk_metrics, analysis_results): store project basic info and llm analysis results in dbasync def insert_project_data(project_code: str, gis_results: Dict[str, Any]):
 # insert_project_GISdata(project_code: str, gis_results: Dict[str, Any]): insert gis data result
 
@@ -21,7 +22,16 @@ async def get_projects():
     return response.data
 
 async def get_project_details(project_code: str):
-    # Get project
+    '''    
+    Summary: Get project data    
+    "project": project,
+    "summary": summary_data,
+    "riskMetrics": risk_response.data,
+    "timeSeriesData": time_series_response.data,
+    "landuseTimeSeriesData": landuse_time_series_response.data,
+    "pieChartData": pie_chart_response.data,
+    "geospatialData": geo_response.data
+    '''
     project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()
     project = project_response.data
     
@@ -103,63 +113,6 @@ async def store_analysis_results(project_data, risk_metrics, risk_policy):
     }).execute()
     
     return project_id
-
-
-async def insert_project_GISdata(project_code: str, gis_results: Dict[str, Any]):
-    """
-    Insert time series and pie chart data for an existing project.
-    
-    Args:
-        project_code: The code of the existing project
-        gis_results: Dictionary containing deforestation_data, emissions_data, and pie_chart_data
-    
-    Returns:
-        bool: True if data was inserted successfully
-    """
-    try:
-        project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()    
-        if not project_response.data:
-            raise ValueError(f"No project found with code: {project_code}")
-        
-        project_id = project_response.data["id"]
-
-        # Insert time series data for deforestation
-        if "deforestation_data" in gis_results:
-            for data_point in gis_results["deforestation_data"]:
-                supabase.table("time_series_data").insert({
-                    "project_id": project_id,
-                    "type": "deforestation",
-                    "timestamp": f"{data_point['year']}-01-01",
-                    "value": data_point["hectares"]
-                }).execute()
-        
-        # Insert time series data for emissions
-        if "emissions_data" in gis_results:
-            for data_point in gis_results["emissions_data"]:
-                supabase.table("time_series_data").insert({
-                    "project_id": project_id,
-                    "type": "emissions",
-                    "timestamp": f"{data_point['year']}-01-01",
-                    "value": data_point["tonnes"]
-                }).execute()
-        
-        # Insert pie chart data
-        if "pie_chart_data" in gis_results:
-            for segment in gis_results["pie_chart_data"]:
-                supabase.table("pie_chart_data").insert({
-                    "project_id": project_id,
-                    "category": segment["category"],
-                    "value": segment["value"]
-                }).execute()
-        return True
-    
-    except KeyError as ke:
-        print(f"Project error: {ke}")
-        return False
-    except Exception as e:
-        print(f"Error inserting project data: {e}")
-        return False
-    
     
 async def update_regional_analy_summary(project_code: str, risk_policy: Dict[str, Any]):
     """
