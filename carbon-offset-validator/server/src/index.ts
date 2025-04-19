@@ -227,12 +227,30 @@ app.get('/api/projects/:code', async (req, res) => {
       throw geospatialError;
     }
 
+    // Get landuse time series data
+    const { data: landuseTimeSeriesData, error: landuseTimeSeriesError } = await supabase
+      .from('landuse_time_series')
+      .select('project_id, month, bare, built, crops, flooded_vegetation, grass, shrub_and_scrub, snow_and_ice, trees, water')
+      .eq('project_id', projectId)
+      .order('month');
+    
+    console.log(`Fetched ${landuseTimeSeriesData?.length || 0} landuse time series records for project ID: ${projectId}`);
+    if (landuseTimeSeriesData && landuseTimeSeriesData.length > 0) {
+      console.log('First record:', landuseTimeSeriesData[0]);
+    }
+    
+    if (landuseTimeSeriesError) {
+      console.error('Error fetching landuse time series data:', landuseTimeSeriesError);
+      // Don't throw here, just log the error and continue
+    }
+
     const response = {
       project: projectData,
       summary: summaryData,
       riskMetrics: riskMetricsData,
       timeSeriesData: timeSeriesData,
       pieChartData: pieChartData,
+      landuseTimeSeriesData: landuseTimeSeriesData || [],
       geospatialData: geospatialData?.map(row => ({
         type: 'Feature',
         geometry: row.geometry,

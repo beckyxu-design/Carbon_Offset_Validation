@@ -12,9 +12,12 @@ const ProjectSelector: React.FC = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await getProjectData('', ''); // Empty strings since we're just fetching the list
-        if (response.data) {
-          setProjects(response.data);
+        const response = await getProjectData(); // No parameter to fetch all projects
+        if (response.data && response.data.projects) {
+          setProjects(response.data.projects);
+        } else if (response.data && response.data.project) {
+          // If we only have a single project, create an array with it
+          setProjects([response.data.project]);
         }
       } catch (error) {
         console.error('Error fetching projects:', error);
@@ -30,29 +33,29 @@ const ProjectSelector: React.FC = () => {
     return <div className="absolute top-4 left-4 z-10 bg-white p-4 rounded-lg shadow-lg">Loading projects...</div>;
   }
 
+  if (projects.length === 0) {
+    return (
+      <div className="absolute top-4 left-4 z-10 bg-white p-4 rounded-lg shadow-lg">
+        No projects available
+      </div>
+    );
+  }
+
   return (
     <div className="absolute top-4 left-4 z-10 bg-white p-4 rounded-lg shadow-lg">
-      <h2 className="text-lg font-semibold mb-2">Select Project</h2>
-      <div className="space-y-2">
+      <h3 className="text-sm font-medium mb-2">Select a Project</h3>
+      <select
+        className="w-full p-2 border rounded"
+        value={selectedProjectId || ''}
+        onChange={(e) => setSelectedProjectId(e.target.value)}
+      >
+        <option value="">-- Select Project --</option>
         {projects.map((project) => (
-          <div
-            key={project.id}
-            className={`p-2 rounded cursor-pointer transition-colors ${
-              // selectedProjectId === sampleProject.id
-              selectedProjectId === project.id
-                ? 'bg-blue-100 border-blue-500'
-                : 'hover:bg-gray-100'
-            }`}
-            onClick={() => setSelectedProjectId(project.id)}
-            // onClick={() => setSelectedProjectId(sampleProject.id)
-          >
-            <h3 className="font-medium">{project.name}</h3>
-            <p className="text-sm text-gray-600">{project.location}</p>
-            {/* <h3 className="font-medium">{sampleProject.name}</h3>
-          <p className="text-sm text-gray-600">{sampleProject.location}</p> */}
-          </div>
+          <option key={project.project_code} value={project.project_code}>
+            {project.name}
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 };

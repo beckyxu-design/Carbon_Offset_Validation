@@ -10,6 +10,7 @@ const endpoints = {
   projects: '/api/projects',
   projectExists: (project_code: string) => `/api/projects/${project_code}/exists`,
   projectDetail: (project_code: string) => `/api/projects/${project_code}`,
+  landuseTimeSeries: (project_code: string) => `/api/projects/${project_code}/landuse-timeseries`,
   analyze: '/api/analyze',
   upload: '/api/upload',
 };
@@ -84,15 +85,38 @@ export const uploadProjectDocument = async (projectCode: string, file: File, doc
 // Pending: Operation is ongoing.
 // Fulfilled (Resolved): Operation succeeded, promise returns a value.
 // Rejected: Operation failed, promise returns an error.
-export const getProjectData = async (projectCode: string): Promise<ApiResponse<ProjectDataResponse>> => {
+export const getProjectData = async (projectCode?: string): Promise<ApiResponse<ProjectDataResponse>> => {
   try {
+    // If no project code is provided, fetch all projects
+    if (!projectCode) {
+      const response = await axios.get<Project[]>(`${baseUrl}${endpoints.projects}`);
+      console.log('Fetched projects list:', response.data);
+      return { 
+        data: {
+          project: response.data[0], // Use the first project as the main project
+          projects: response.data,   // Include all projects in the response
+          summary: { summary: '', recommendations: [], additionalInsights: '' },
+          riskMetrics: [],
+          timeSeriesData: [],
+          landuseTimeSeriesData: [],
+          pieChartData: [],
+          geospatialData: []
+        } 
+      };
+    }
+    
+    // Fetch a specific project by code
     const response = await axios.get<ProjectDataResponse>(
       `${baseUrl}${endpoints.projectDetail(projectCode)}`
     );
     
-    // Validate the response data structure
+    // Log the response for debugging
+    console.log('Project data response:', response.data);
+    
+    // Validate the response data structure with more flexibility
     const data = response.data;
-    if (!data.project || !data.project.project_code) {
+    if (!data || !data.project) {
+      console.error('Invalid project data structure:', data);
       throw new Error('Invalid project data structure received from server');
     }
     
@@ -106,6 +130,23 @@ export const getProjectData = async (projectCode: string): Promise<ApiResponse<P
   }
 };
 
+// Fetch land use time series data by project code
+export const getLanduseTimeSeriesData = async (projectCode: string): Promise<ApiResponse<{ landuseTimeSeriesData: any[] }>> => {
+  try {
+    const response = await axios.get<{ landuseTimeSeriesData: any[] }>(
+      `${baseUrl}${endpoints.landuseTimeSeries(projectCode)}`
+    );
+    console.log('Land use time series data response:', response.data);
+    
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Error fetching land use time series data:', error);
+    return { 
+      data: null, 
+      error: error?.response?.data?.error || error?.message || 'Failed to fetch land use time series data'
+    };
+  }
+};
 
 // Check if a project exists
 export const checkProjectExists = async (projectCode: string): Promise<ApiResponse<{ exists: boolean }>> => {

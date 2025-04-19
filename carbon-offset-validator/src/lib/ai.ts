@@ -52,7 +52,23 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
 
     // Get geospatial data from the project data
     const geospatialData = projectData.geospatialData || [];
-  
+
+    // Get land use time series data with proper null checks
+    const landuseTimeSeriesData = (projectData.landuseTimeSeriesData || []).map(d => ({
+      project_id: d.project_id || '',
+      month: d.month || '',
+      bare: d.bare || 0,
+      built: d.built || 0,
+      crops: d.crops || 0,
+      flooded_vegetation: d.flooded_vegetation || 0,
+      grass: d.grass || 0,
+      shrub_and_scrub: d.shrub_and_scrub || 0,
+      snow_and_ice: d.snow_and_ice || 0,
+      trees: d.trees || 0,
+      water: d.water || 0
+    }));
+
+    console.log('landuseTimeSeriesData:', landuseTimeSeriesData)
 
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {
@@ -86,6 +102,7 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
       emissionsData,
       pieChartData,
       geospatialData,
+      landuseTimeSeriesData,
       documents: {
         pdd: defaultDoc,
         riskAnalysis: defaultDoc

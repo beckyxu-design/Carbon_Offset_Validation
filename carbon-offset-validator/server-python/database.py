@@ -56,6 +56,9 @@ async def get_project_details(project_code: str):
     # Get time series data
     time_series_response = supabase.table("time_series_data").select("*").eq("project_id", project_id).order("timestamp").execute()
     
+    # Get landuse time series data
+    landuse_time_series_response = supabase.table("landuse_time_series").select("project_id, timestamp, bare, built, crops, flooded_vegetation, grass, shrub_and_scrub, snow_and_ice, trees, water").eq("project_id", project_id).order("timestamp").execute()
+    
     # Get pie chart data
     pie_chart_response = supabase.table("pie_chart_data").select("*").eq("project_id", project_id).execute()
     
@@ -67,6 +70,7 @@ async def get_project_details(project_code: str):
         "summary": summary_data,
         "riskMetrics": risk_response.data,
         "timeSeriesData": time_series_response.data,
+        "landuseTimeSeriesData": landuse_time_series_response.data,
         "pieChartData": pie_chart_response.data,
         "geospatialData": geo_response.data
     }

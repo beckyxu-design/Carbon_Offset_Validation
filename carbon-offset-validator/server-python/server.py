@@ -7,6 +7,7 @@
 # @app.post("/api/analyze")
 # @app.post("/api/generate-text")
 # @app.post("/api/projects/{project_code}/update-summary")
+# @app.get("/api/projects/{project_code}/landuse-timeseries")
 
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
@@ -144,6 +145,26 @@ async def generate_text(request: dict):
         
         return {"response": response}
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/projects/{project_code}/landuse-timeseries")
+async def get_landuse_timeseries(project_code: str):
+    """
+    Get land use time series data for a specific project.
+    
+    Args:
+        project_code: The code of the project
+        
+    Returns:
+        Land use time series data for the project
+    """
+    try:
+        project_data = await get_project_details(project_code)
+        if not project_data:
+            raise HTTPException(status_code=404, detail=f"Project with code {project_code} not found")
+        
+        return {"landuseTimeSeriesData": project_data.get("landuseTimeSeriesData", [])}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

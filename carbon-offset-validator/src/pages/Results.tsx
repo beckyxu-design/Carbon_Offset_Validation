@@ -9,6 +9,7 @@ import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FeatureCollection } from 'geojson';
+import { getProjectData } from "@/lib/api";
 
 const Results = () => {
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResponse | null>(null);
@@ -27,16 +28,40 @@ const Results = () => {
 
         // Try to get the analysis result from sessionStorage
         const storedResult = sessionStorage.getItem('analysisResult');
+        console.log('store result is :', storedResult);
         
         if (storedResult) {
           try {
             const parsedResult = JSON.parse(storedResult) as AIAnalysisResponse;
-            setAnalysisResult(parsedResult);
             
-            // // Set the project code for the map
-            // if (parsedResult.projectData?.project_code) {
-            //   setSelectedProjectId(parsedResult.projectData.project_code);
-            // }
+            // If we have a project code, fetch the latest data from the API
+            if (projectCode && parsedResult.projectData?.project_code) {
+              try {
+                // Fetch the latest project data from the API
+                const apiResponse = await getProjectData(projectCode);
+                
+                if (apiResponse.data) {
+                  console.log('API data:', apiResponse.data);
+                  
+                  // Merge the API data with the stored result
+                  // This ensures we get the latest land use time series data
+                  setAnalysisResult({
+                    ...parsedResult,
+                    landuseTimeSeriesData: apiResponse.data.landuseTimeSeriesData || []
+                  });
+                } else {
+                  // If API call fails, use the stored result
+                  setAnalysisResult(parsedResult);
+                }
+              } catch (apiError) {
+                console.error('Error fetching API data:', apiError);
+                // If API call fails, use the stored result
+                setAnalysisResult(parsedResult);
+              }
+            } else {
+              // If no project code, just use the stored result
+              setAnalysisResult(parsedResult);
+            }
             
             // Set the geospatial data for the map
             if (parsedResult.geospatialData) {

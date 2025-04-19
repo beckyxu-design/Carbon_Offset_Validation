@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 from typing import Dict, List, Any, Optional
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core import get_response_synthesizer
+from llama_index.core import VectorStoreIndex
+from llama_index.core.indices.base import BaseIndex as index
 import google.generativeai as genai
 
 load_dotenv()

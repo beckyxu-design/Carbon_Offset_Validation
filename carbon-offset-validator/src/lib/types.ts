@@ -31,6 +31,23 @@ export interface EmissionsData {
 }
 
 /**
+ * Land use time series data interface
+ */
+export interface LanduseTimeSeriesData {
+  project_id: string;
+  month: string;
+  bare: number;
+  built: number;
+  crops: number;
+  flooded_vegetation: number;
+  grass: number;
+  shrub_and_scrub: number;
+  snow_and_ice: number;
+  trees: number;
+  water: number;
+}
+
+/**
  * Risk metric interface
  */
 export interface RiskMetric {
@@ -82,6 +99,7 @@ export interface AIAnalysisResponse {
   emissionsData: EmissionsData[];
   pieChartData: PieChartData[];
   geospatialData: GeoData[];
+  landuseTimeSeriesData: LanduseTimeSeriesData[];
   documents: {
     pdd: Document;
     riskAnalysis: Document;
@@ -133,9 +151,11 @@ export interface GeoData extends Feature {
  */
 export interface ProjectDataResponse {
   project: Project;
+  projects?: Project[];  // Optional array of projects for listing all projects
   summary: Summary;
   riskMetrics: RiskMetric[];
   timeSeriesData: (DeforestationData | EmissionsData)[];
+  landuseTimeSeriesData: LanduseTimeSeriesData[];
   pieChartData: PieChartData[];
   geospatialData: GeoData[];
 }
