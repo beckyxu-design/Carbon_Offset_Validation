@@ -29,7 +29,7 @@ export interface RiskMetric {
 export interface TimeSeriesData {
   project_id: string;
   timestamp: string;
-  deforestation_hectares: number;
+  deforestation_area: number;
   emissions_tonnes: number;
 }
 
