@@ -14,9 +14,7 @@ interface AIAnalysisCardProps {
 
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   // console.log("Recommendations:", data.summary.recommendations);
-
   const [copied, setCopied] = useState<boolean>(false);
-
   const copyToClipboard = () => {
     const text = `
       Project: ${data.projectData.name}

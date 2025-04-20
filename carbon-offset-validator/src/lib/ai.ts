@@ -1,6 +1,4 @@
 import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
-import { FeatureCollection } from 'geojson';
-import { toast } from 'sonner';
 import { getProjectData } from './api';
 
 

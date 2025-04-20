@@ -2,13 +2,26 @@ import React from "react";
 import { Project } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar } from "lucide-react";
+import { MapPin, Calendar, Clock, Info, Tag, FileText } from "lucide-react";
 
 interface ProjectHeaderProps {
   project: Project;
 }
 
 const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
+  // Early return with loading state if project is undefined
+  if (!project) {
+    return (
+      <div className="animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Loading project data...</h1>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Format coordinates safely
   const formatCoordinates = (coords: [number, number] | undefined) => {
     if (!coords || !Array.isArray(coords) || coords.length !== 2) return null;
@@ -34,9 +47,28 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
     }
   };
 
-  const startDate = formatDate(project.startDate);
-  const endDate = formatDate(project.endDate);
+  // Format timestamp safely
+  const formatTimestamp = (timestampStr: string | undefined) => {
+    if (!timestampStr) return null;
+    try {
+      return new Date(timestampStr).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return null;
+    }
+  };
+
+  const startDate = formatDate(project.start_date);
+  const endDate = formatDate(project.end_date);
   const coordinates = formatCoordinates(project.coordinates);
+  const createdAt = formatTimestamp(project.created_at);
+  const updatedAt = formatTimestamp(project.updated_at);
 
   return (
     <div className="animate-fade-in">
@@ -46,64 +78,60 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-normal">
               Project Code: {project.project_code}
             </Badge>
-            {startDate && (
-              <Badge variant="outline" className="bg-secondary/50 text-secondary-foreground border-secondary/20 font-normal">
-                <Calendar className="h-3 w-3 mr-1" />
-                Started {new Date(project.startDate).getFullYear()}
-              </Badge>
-            )}
-            {project.status && (
-              <Badge variant="outline" className="bg-secondary/50 text-secondary-foreground border-secondary/20 font-normal">
-                Status: {project.status}
-              </Badge>
-            )}
+            <Badge variant="outline" className="bg-secondary/50 text-secondary-foreground border-secondary/20 font-normal">
+              Status: {project.status}
+            </Badge>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{project.name || `Carbon Project ${project.project_code}`}</h1>
+          <h1 className="text-2xl font-bold">{project.name}</h1>
+          <p className="text-muted-foreground mt-1">{project.description}</p>
         </div>
       </div>
-      
-      <Card className="glass-card mb-8 overflow-hidden animate-scale-in">
-        <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {project.location && (
-              <div className="flex items-start">
-                <div className="mr-3 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Location</div>
-                  <div className="font-medium">{project.location}</div>
-                  {coordinates && (
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {coordinates}
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{project.location}</span>
               </div>
             )}
             
-            {(startDate || endDate) && (
-              <div className="flex items-start">
-                <div className="mr-3 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground mb-1">Project Period</div>
-                  <div className="font-medium">
-                    {startDate} - {endDate}
-                  </div>
-                </div>
+            {coordinates && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Coordinates: {coordinates}</span>
+              </div>
+            )}
+
+            {startDate && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Crediting Start: {startDate}</span>
+              </div>
+            )}
+
+            {endDate && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Crediting End: {endDate}</span>
+              </div>
+            )}
+
+            {project.methodology && (
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Methodology: {project.methodology}</span>
+              </div>
+            )}
+
+            {project.size && (
+              <div className="flex items-center gap-2">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">Size: {project.size}</span>
               </div>
             )}
           </div>
-          
-          {project.description && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <div className="text-sm font-medium text-muted-foreground mb-2">Project Description</div>
-              <p className="text-foreground">{project.description}</p>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

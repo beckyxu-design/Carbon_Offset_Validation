@@ -10,8 +10,12 @@ export interface Project {
   location: string;
   coordinates: [number, number];
   status: string;
-  startDate: string;
-  endDate: string;
+  start_date: string;
+  end_date: string;
+  created_at?: string;
+  updated_at?: string;
+  methodology?: string;
+  size?: string;
 }
 
 /**
