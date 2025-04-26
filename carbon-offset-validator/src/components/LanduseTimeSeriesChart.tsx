@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   AreaChart, 
@@ -11,6 +11,7 @@ import {
   Legend
 } from 'recharts';
 import { BarChartIcon } from 'lucide-react';
+import { TooltipProps } from 'recharts';
 
 interface LanduseTimeSeriesData {
   month: string;
@@ -31,15 +32,27 @@ interface LanduseTimeSeriesChartProps {
 
 // Color palette for different land use types
 const COLORS = {
-  bare: '#d9b382',           // Light brown
-  built: '#a0a0a0',          // Gray
-  crops: '#f0e68c',          // Khaki
-  flooded_vegetation: '#6b8e23', // Olive Drab
-  grass: '#90ee90',          // Light Green
-  shrub_and_scrub: '#9acd32', // Yellow Green
-  snow_and_ice: '#e0ffff',   // Light Cyan
-  trees: '#228b22',          // Forest Green
-  water: '#1e90ff'           // Dodger Blue
+  bare: '#a59b8f',           // Light brown
+  built: '#c4281b',          // Gray
+  crops: '#e49635',          // Khaki
+  flooded_vegetation: '#7a87c6', // Olive Drab
+  grass: '#88b053',          // Light Green
+  shrub_and_scrub: '#dfc35a', // Yellow Green
+  snow_and_ice: '#b39fe1',   // Light Cyan
+  trees: '#397d49',          // Forest Green
+  water: '#419bdf'           // Dodger Blue
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  bare: 'Bare Land',
+  built: 'Built-up Area',
+  crops: 'Cropland',
+  flooded_vegetation: 'Flooded Vegetation',
+  grass: 'Grassland',
+  shrub_and_scrub: 'Shrub and Scrub',
+  snow_and_ice: 'Snow and Ice',
+  trees: 'Forest',
+  water: 'Water',
 };
 
 const formatDate = (dateString: string) => {
@@ -48,11 +61,31 @@ const formatDate = (dateString: string) => {
 };
 
 const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data }) => {
+  // --- Unit adjustment logic ---
+  const getYAxisUnit = (data: LanduseTimeSeriesData[]) => {
+    // Find the max value across all land use types
+    const max = Math.max(
+      ...data.flatMap(d => [d.bare, d.built, d.crops, d.flooded_vegetation, d.grass, d.shrub_and_scrub, d.snow_and_ice, d.trees, d.water])
+    );
+    if (max >= 1_000_000) return { unit: 'millions', divisor: 1_000_000, label: 'Area (millions of square meters (m²))' };
+    if (max >= 1_000) return { unit: 'thousands', divisor: 1_000, label: 'Area (thousands of square meters (m²))' };
+    return { unit: 'square meters (m²)', divisor: 1, label: 'Area (square meters (m²))' };
+  };
+  const yAxisUnit = useMemo(() => getYAxisUnit(data), [data]);
   // Format data for the chart
-  const formattedData = data.map(item => ({
+  const formattedData = useMemo(() => data.map(item => ({
     ...item,
-    month: formatDate(item.month)
-  }));
+    month: formatDate(item.month),
+    bare: item.bare / yAxisUnit.divisor,
+    built: item.built / yAxisUnit.divisor,
+    crops: item.crops / yAxisUnit.divisor,
+    flooded_vegetation: item.flooded_vegetation / yAxisUnit.divisor,
+    grass: item.grass / yAxisUnit.divisor,
+    shrub_and_scrub: item.shrub_and_scrub / yAxisUnit.divisor,
+    snow_and_ice: item.snow_and_ice / yAxisUnit.divisor,
+    trees: item.trees / yAxisUnit.divisor,
+    water: item.water / yAxisUnit.divisor
+  })), [data, yAxisUnit]);
 
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
@@ -76,9 +109,34 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                 label={{ value: 'Date', position: 'insideBottomRight', offset: -10 }} 
               />
               <YAxis 
-                label={{ value: 'Area (hectares)', angle: -90, position: 'insideLeft' }} 
+                label={{ value: yAxisUnit.label, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
+                tickFormatter={value => value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               />
-              <Tooltip formatter={(value) => [`${Number(value).toFixed(2)} hectares`, '']} />
+              <Tooltip 
+                content={(props: TooltipProps<any, string>) => {
+                  if (!props.active || !props.payload || !props.payload.length) return null;
+                  // Reverse the order of payload so Water is at the top
+                  const reversed = [...props.payload].reverse();
+                  return (
+                    <div className="bg-white p-3 rounded-md shadow-lg border border-border">
+                      <p className="text-sm font-medium mb-1">{props.label}</p>
+                      {reversed.map((entry, i) => {
+                        let display = Number(entry.value).toLocaleString('en-US', { maximumFractionDigits: 2 });
+                        let suffix = '';
+                        if (yAxisUnit.unit === 'millions') suffix = ' million';
+                        else if (yAxisUnit.unit === 'thousands') suffix = ' thousand';
+                        const label = FEATURE_LABELS[entry.name as string] || entry.name;
+                        return (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span style={{ color: entry.color, width: 12, display: 'inline-block' }}>●</span>
+                            <span>{label}: {display}{suffix} square meters (m²)</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }}
+              />
               <Legend />
               
               <Area 

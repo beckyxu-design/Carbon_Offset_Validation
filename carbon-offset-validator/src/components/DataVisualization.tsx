@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimeSeriesData } from "@/lib/types";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
 import { TreeDeciduous, BarChart4 } from "lucide-react";
 
 interface DataVisualizationProps {
@@ -16,6 +16,21 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>("deforestation");
   
+  // --- Unit adjustment logic ---
+  const getYAxisUnit = (data: TimeSeriesData[]) => {
+    const max = Math.max(...data.map(d => d.deforestation_area || 0));
+    if (max >= 1_000_000) return { unit: 'millions', divisor: 1_000_000, label: 'Forest Loss (millions of square meters (m²))' };
+    if (max >= 1_000) return { unit: 'thousands', divisor: 1_000, label: 'Forest Loss (thousands of square meters (m²))' };
+    return { unit: 'square meters (m²)', divisor: 1, label: 'Forest Loss (square meters (m²))' };
+  };
+  const yAxisUnit = useMemo(() => getYAxisUnit(timeSeriesData), [timeSeriesData]);
+  const transformedData = useMemo(() => {
+    return timeSeriesData.map(d => ({
+      ...d,
+      deforestation_area_display: d.deforestation_area / yAxisUnit.divisor
+    }));
+  }, [timeSeriesData, yAxisUnit]);
+
   useEffect(() => {
     if (timeSeriesData && timeSeriesData.length > 0) {
       // console.log("First data point:", timeSeriesData[0]);
@@ -25,24 +40,49 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
     }
   }, [timeSeriesData]);
   
-  const CustomTooltip = ({ active, payload, label, dataType }: any) => {
+  const CustomTooltip = ({ active, payload, label, dataType, unit, divisor }: any) => {
     if (!active || !payload || !payload.length) {
-      console.log("Tooltip not showing. Payload:", payload);
+      // console.log("Tooltip not showing. Payload:", payload);
       return null;
     }
-        
+    let value = payload[0].value;
+    let display = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    let suffix = '';
+    if (unit === 'millions') suffix = ' million';
+    else if (unit === 'thousands') suffix = ' thousand';
     return (
       <div className="bg-white p-3 rounded-md shadow-lg border border-border">
         <p className="text-sm font-medium">{label}</p>
         <p className="text-sm text-primary">
           {dataType === "deforestation" 
-            ? `${payload[0].value} hectares` 
+            ? `${display}${suffix} square meters (m²)` 
             : `${payload[0].value.toLocaleString()} tonnes CO₂e`}
         </p>
       </div>
     );
   };
   
+  // Yearly color palette for bars (2001-2023)
+  const BAR_PALETTE = [
+    '#880000', '#990000', '#AA0000', '#BB0000', '#CC0000', '#DD0000', '#EE0000', '#FF0000',
+    '#FF1100', '#FF2200', '#FF3300', '#FF4400', '#FF5500', '#FF6600', '#FF7700',
+    '#FF8800', '#FF9900', '#FFAA00', '#FFBB00', '#FFCC33', '#FFDD66', '#FFEE99', '#FFFFCC'
+  ];
+
+  // Assign color to each year from 2001 to 2023
+  const yearToColor: Record<string, string> = {};
+  for (let i = 0; i < 23; i++) {
+    const year = (2001 + i).toString();
+    yearToColor[year] = BAR_PALETTE[i];
+  }
+
+  const coloredData = useMemo(() => {
+    return transformedData.map((d) => ({
+      ...d,
+      barColor: yearToColor[d.timestamp] || '#3b82f6'
+    }));
+  }, [transformedData]);
+
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
@@ -75,18 +115,17 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
           
           <TabsContent value="deforestation" className="space-y-4">
             <div className="h-80">
-              {timeSeriesData.length === 0 && (
+              {transformedData.length === 0 && (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
                   No deforestation data available
                 </div>
               )}
-              {timeSeriesData.length > 0 && (
+              {transformedData.length > 0 && (
                 <>
-                  {/* {console.log("Rendering bar chart with data:", timeSeriesData)} */}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={timeSeriesData}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                      data={transformedData}
+                      margin={{ top: 10, right: 10, left: 20, bottom: 20 }}
                       barSize={20}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -96,20 +135,25 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
                       />
                       <YAxis 
                         label={{ 
-                          value: 'Forest Loss (hectares)', 
+                          value: yAxisUnit.label, 
                           angle: -90, 
                           position: 'insideLeft',
                           style: { textAnchor: 'middle' }
-                        }} 
+                        }}
+                        tickFormatter={value => value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        domain={[0, 'auto']}
                       />
-                      <Tooltip content={<CustomTooltip dataType="deforestation" />} />
+                      <Tooltip content={<CustomTooltip dataType="deforestation" unit={yAxisUnit.unit} divisor={yAxisUnit.divisor} />} />
                       <Legend verticalAlign="top" height={36} />
-                      <Bar 
-                        dataKey="deforestation_area" 
-                        name="Forest Loss (hectares)" 
-                        fill="#3b82f6" 
-                        animationDuration={1500}
-                      />
+                      <Bar
+                        dataKey="deforestation_area_display"
+                        name={yAxisUnit.label}
+                        isAnimationActive={true}
+                      >
+                        {coloredData.map((entry, idx) => (
+                          <Cell key={`cell-${entry.timestamp}`} fill={entry.barColor} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </>
@@ -123,18 +167,17 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
           
           <TabsContent value="emissions" className="space-y-4">
             <div className="h-80">
-              {timeSeriesData.length === 0 && (
+              {transformedData.length === 0 && (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
                   No emissions data available
                 </div>
               )}
-              {timeSeriesData.length > 0 && (
+              {transformedData.length > 0 && (
                 <>
-                  {/* {console.log("Rendering line chart with data:", timeSeriesData)} */}
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
-                      data={timeSeriesData}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                      data={transformedData}
+                      margin={{ top: 10, right: 10, left: 20, bottom: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis 
@@ -143,18 +186,20 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
                       />
                       <YAxis 
                         label={{ 
-                          value: 'Forest Loss (hectares)', 
+                          value: yAxisUnit.label, 
                           angle: -90, 
                           position: 'insideLeft',
                           style: { textAnchor: 'middle' }
-                        }} 
+                        }}
+                        tickFormatter={value => value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                        domain={[0, 'auto']}
                       />
-                      <Tooltip content={<CustomTooltip dataType="emissions" />} />
+                      <Tooltip content={<CustomTooltip dataType="emissions" unit={yAxisUnit.unit} divisor={yAxisUnit.divisor} />} />
                       <Legend verticalAlign="top" height={36} />
                       <Line 
                         type="monotone" 
-                        dataKey="deforestation_area" 
-                        name="Forest Loss (hectares)" 
+                        dataKey="deforestation_area_display" 
+                        name={yAxisUnit.label} 
                         stroke="#3b82f6" 
                         strokeWidth={2}
                         dot={{ r: 4 }}

@@ -13,8 +13,10 @@ const MapControls: React.FC = () => {
   const { 
     showDeforestationLayer, 
     toggleDeforestationLayer,
-    showPalmOilLayer,
-    togglePalmOilLayer
+    showForestLoss1Layer,
+    toggleForestLoss1Layer,
+    showPalmLayer,
+    togglePalmLayer
   } = useMap();
 
   return (
@@ -36,7 +38,7 @@ const MapControls: React.FC = () => {
                   <EyeOff className="h-4 w-4" />
                 )}
               </Toggle>
-              <span className="text-xs font-medium whitespace-nowrap">Deforestation Layer</span>
+              <span className="text-xs font-medium whitespace-nowrap">Deforestation (2018-2024) | Dynamic World </span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="left">
@@ -50,23 +52,49 @@ const MapControls: React.FC = () => {
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2">
               <Toggle
-                pressed={showPalmOilLayer}
-                onPressedChange={togglePalmOilLayer}
+                pressed={showForestLoss1Layer}
+                onPressedChange={toggleForestLoss1Layer}
                 variant="outline"
                 size="sm"
                 className="h-8 w-8 p-0 data-[state=on]:bg-primary/20 data-[state=on]:text-primary"
               >
-                {showPalmOilLayer ? (
+                {showForestLoss1Layer ? (
                   <Eye className="h-4 w-4" />
                 ) : (
                   <EyeOff className="h-4 w-4" />
                 )}
               </Toggle>
-              <span className="text-xs font-medium whitespace-nowrap">Palm Oil Concessions</span>
+              <span className="text-xs font-medium whitespace-nowrap"> Forest Loss (2001-2023) | GFW </span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p className="text-xs">{showPalmOilLayer ? 'Hide' : 'Show'} palm oil concessions</p>
+            <p className="text-xs">{showForestLoss1Layer ? 'Hide' : 'Show'} Forest Loss </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Toggle
+                pressed={showPalmLayer}
+                onPressedChange={togglePalmLayer}
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 data-[state=on]:bg-primary/20 data-[state=on]:text-primary"
+              >
+                {showPalmLayer ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Toggle>
+              <span className="text-xs font-medium whitespace-nowrap">Oil Palm Concessions (2023) | GFW</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p className="text-xs">{showPalmLayer ? 'Hide' : 'Show'} Oil Palm Concessions</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

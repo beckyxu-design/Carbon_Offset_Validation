@@ -10,22 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { getPalmoilData } from '@/lib/api';
 
-// Define GeoJSON types for TypeScript
-interface GeoJSONFeature {
-  type: string;
-  geometry: any;
-  properties?: any;
-}
-
-interface GeoJSONFeatureCollection {
-  type: 'FeatureCollection';
-  features: GeoJSONFeature[];
-}
-
-interface GeoJSON {
-  type: string;
-  features: GeoJSONFeature[];
-}
+import type { FeatureCollection, Feature } from 'geojson'
 
 const MapComponent: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -33,13 +18,17 @@ const MapComponent: React.FC = () => {
   const { 
     selectedProjectId, 
     showDeforestationLayer,
-    showPalmOilLayer,
+    showForestLoss1Layer,
+    showPalmLayer,
     setSelectedProjectId,
     geospatialData
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deforestationLoaded, setDeforestationLoaded] = useState(false);
+  const [forestloss1Loaded, setForestLoss1Loaded] = useState(false);
+  const [forestloss2Loaded, setForestLoss2Loaded] = useState(false);
+  const [palmLoaded, setPalmLoaded] = useState(false);
 
   useEffect(() => {
     if (!mapContainerRef.current || map.current) return;
@@ -81,13 +70,13 @@ const MapComponent: React.FC = () => {
           type: 'geojson',
           data: geospatialData || sampleGeoJSON
         });
-
+        console.log(geospatialData)
         map.current?.addLayer({
           id: 'project-area-fill',
           type: 'fill',
           source: 'project-area',
           paint: {
-            'fill-color': '#F9C80E',
+            'fill-color': '#0074FF',
             'fill-opacity': 0.4
           }
         });
@@ -96,22 +85,36 @@ const MapComponent: React.FC = () => {
           type: 'line',
           source: 'project-area',
           paint: {
-            'line-color': '#F9C80E',
+            'line-color': '#0074FF',
             'line-width': 2
           }
         });
 
-        // Add deforestation layer (unchanged)
+        // Add deforestation layer
         const TILESET_ID = 'ichobecky.cus4ehcj';
         try {
-          map.current?.addSource('deforestation-source', {
-            type: 'raster',
-            tiles: [
-              `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
-            ],
-            tileSize: 256
-          });
-
+          // Try to load from sessionStorage first
+          const deforestationTiles = sessionStorage.getItem('deforestationTiles');
+          if (deforestationTiles) {
+            map.current?.addSource('deforestation-source', {
+              ...(JSON.parse(deforestationTiles) as any),
+              type: 'raster',
+            });
+            setDeforestationLoaded(true);
+            console.log('Deforestation layer loaded from sessionStorage');
+          } else {
+            const deforestationSource = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('deforestation-source', deforestationSource);
+            sessionStorage.setItem('deforestationTiles', JSON.stringify(deforestationSource));
+            setDeforestationLoaded(true);
+            console.log('Deforestation layer loaded successfully and saved to sessionStorage');
+          }
           map.current?.addLayer({
             id: 'deforestation-layer',
             type: 'raster',
@@ -123,12 +126,168 @@ const MapComponent: React.FC = () => {
               visibility: showDeforestationLayer ? 'visible' : 'none'
             }
           });
-          
-          setDeforestationLoaded(true);
-          console.log('Deforestation layer loaded successfully');
         } catch (error) {
           console.error('Error loading deforestation layer:', error);
           toast.error('Failed to load deforestation layer');
+        }
+        
+        // Add forest loss change layer 1 - small
+        const TILESET_ID_FL1 = 'beckyzqxu.7ggv075e';
+        try {
+          // Try to load from sessionStorage first
+          const forestLoss1Tiles = sessionStorage.getItem('forestLoss1Tiles');
+          if (forestLoss1Tiles) {
+            map.current?.addSource('forest-loss-1-source', {
+              ...(JSON.parse(forestLoss1Tiles) as any),
+              type: 'raster',
+            });
+            setForestLoss1Loaded(true);
+            console.log('Forest loss change layer 1 loaded from sessionStorage');
+          } else {
+            const forestLoss1Source = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID_FL1}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('forest-loss-1-source', forestLoss1Source);
+            sessionStorage.setItem('forestLoss1Tiles', JSON.stringify(forestLoss1Source));
+            setForestLoss1Loaded(true);
+            console.log('Forest loss change layer 1 loaded successfully and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'forest-loss-1-layer',
+            type: 'raster',
+            source: 'forest-loss-1-source',
+            paint: {
+              'raster-opacity': 0.9
+            },
+            layout: {
+              visibility: showForestLoss1Layer ? 'visible' : 'none'
+            }
+          });
+        } catch (error) {
+          console.error('Error loading forest loss 1 change layer:', error);
+          toast.error('Failed to load forest loss 1 change layer');
+        }
+
+        // Add forest loss change layer 2 - large
+        const TILESET_ID_FL2 = 'beckyzqxu.821qca28';
+        try {
+          // Try to load from sessionStorage first
+          const forestLoss2Tiles = sessionStorage.getItem('forestLoss2Tiles');
+          if (forestLoss2Tiles) {
+            map.current?.addSource('forest-loss-2-source', {
+              ...(JSON.parse(forestLoss2Tiles) as any),
+              type: 'raster',
+            });
+            setForestLoss2Loaded(true);
+            console.log('Forest loss change layer 2 loaded from sessionStorage');
+          } else {
+            const forestLoss2Source = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID_FL2}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('forest-loss-2-source', forestLoss2Source);
+            sessionStorage.setItem('forestLoss2Tiles', JSON.stringify(forestLoss2Source));
+            setForestLoss2Loaded(true);
+            console.log('Forest loss change layer loaded successfully and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'forest-loss-2-layer',
+            type: 'raster',
+            source: 'forest-loss-2-source',
+            paint: {
+              'raster-opacity': 0.9
+            },
+            layout: {
+              visibility: showForestLoss1Layer ? 'visible' : 'none'
+            }
+          });
+        } catch (error) {
+          console.error('Error loading forest loss 2 change layer:', error);
+          toast.error('Failed to load forest loss 2 change layer');
+        }
+
+        // Add palm oil concession vector layer
+        const TILESET_ID_PALM = 'ichobecky.bjwru1ey';
+        try {
+          // Try to load from sessionStorage first
+          const palmTiles = sessionStorage.getItem('palmTiles');
+          if (palmTiles) {
+            map.current?.addSource('palm-source', {
+              ...(JSON.parse(palmTiles) as any),
+              type: 'vector',
+            });
+            setPalmLoaded(true);
+            console.log('Palm oil concession loaded from sessionStorage');
+          } else {
+            map.current?.addSource('palm-source', {
+              type: 'vector',
+              url: `mapbox://${TILESET_ID_PALM}`
+            });
+            sessionStorage.setItem('palmTiles', JSON.stringify({
+              type: 'vector',
+              url: `mapbox://${TILESET_ID_PALM}`
+            }));
+            setPalmLoaded(true);
+            console.log('Palm oil concession loaded and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'palm-source-id',
+            type: 'fill',
+            source: 'palm-source',
+            'source-layer': 'Indonesia_oil_palm_concession-8b9x8u',
+            paint: {
+              'fill-color': '#D9D9D9',
+              'fill-opacity': 0.3
+            },
+            layout: {
+              visibility: showPalmLayer ? 'visible' : 'none'
+            }
+          });
+
+          // Add hover handler for palm oil concessions
+          let palmPopup: mapboxgl.Popup | null = null;
+          map.current?.on('mousemove', 'palm-source-id', (e) => {
+            if (e.features && e.features.length > 0) {
+              const properties = e.features[0].properties || {};
+              const company = properties.company;
+              const groupComp = properties.group_comp;
+              if ((company || groupComp) && map.current) {
+                map.current.getCanvas().style.cursor = 'pointer';
+                const coordinates = e.lngLat;
+                // Only show one popup at a time
+                let content = "<div style='font-size:13px; opacity:0.9; background: white; border-radius: 4px; padding: 4px 8px;'>";
+                if (company) content += `<strong>Company:</strong> ${company}<br/>`;
+                if (groupComp) content += `<strong>Group:</strong> ${groupComp}`;
+                content += "</div>";
+                if (!palmPopup) {
+                  palmPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+                    .setLngLat(coordinates)
+                    .setHTML(content)
+                    .addTo(map.current);
+                } else {
+                  palmPopup.setLngLat(coordinates)
+                    .setHTML(content);
+                }
+              }
+            }
+          });
+          map.current?.on('mouseleave', 'palm-source-id', () => {
+            if (palmPopup) {
+              palmPopup.remove();
+              palmPopup = null;
+            }
+            map.current && (map.current.getCanvas().style.cursor = '');
+          });
+        } catch (error) {
+          console.error('Error loading palm oil concession layer:', error);
+          toast.error('Failed to load palm oil concession layer');
         }
 
         // Add click handler for project area
@@ -184,99 +343,57 @@ const MapComponent: React.FC = () => {
       });
 
       if (!bounds.isEmpty()) {
-        map.current.fitBounds(bounds, {
-          padding: 50,
-          maxZoom: 15
-        });
+        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
       }
     }
   }, [mapInitialized, geospatialData]);
 
-  // Fetch and display palm oil data
+  // Update deforestation layer visibility when toggle changes
   useEffect(() => {
-    if (!mapInitialized || !map.current) return;
-
-    const fetchPalmOilData = async () => {
-      try {
-        const response = await getPalmoilData();
-        if (response.data && response.data.palmOilData) {
-          const geojsonData: any = response.data.palmOilData;
-          console.log("Palm oil data:", geojsonData);
-
-          // Create a proper GeoJSON FeatureCollection object
-          const featureCollection = {
-            type: 'FeatureCollection',
-            features: Array.isArray(geojsonData) ? geojsonData : 
-                     (geojsonData && geojsonData.features ? geojsonData.features : [])
-          };
-
-          // Use a direct type cast to any to bypass TypeScript's type checking
-          // This is necessary when working with external library expectations
-          map.current?.addSource('palm-oil-data', {
-            type: 'geojson',
-            data: featureCollection as any
-          });
-          
-          map.current?.addLayer({
-            id: 'palm-oil-layer',
-            type: 'fill',
-            source: 'palm-oil-data',
-            paint: {
-              'fill-color': '#F9C80E',
-              'fill-opacity': 0.8
-            }
-          });
-
-          // Add an outline layer for better visibility
-          map.current?.addLayer({
-            id: 'palm-oil-layer-outline',
-            type: 'line',
-            source: 'palm-oil-data',
-            paint: {
-              'line-color': '#F86624',
-              'line-width': 1
-            }
-          });
-
-          console.log("Palm oil data added to map successfully");
-        } else {
-          throw new Error(response.error || 'Failed to load palm oil data');
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error("Error fetching palm oil data:", errorMessage);
-        toast.error("Failed to load palm oil data: " + errorMessage);
-      }
-    };
-
-    fetchPalmOilData();
-  }, [mapInitialized]);
-
-  // Toggle palm oil layer visibility
-  useEffect(() => {
-    if (!mapInitialized || !map.current) return;
-
-    const visibility = showPalmOilLayer ? 'visible' : 'none';
-    if (map.current.getLayer('palm-oil-layer')) {
-      map.current.setLayoutProperty('palm-oil-layer', 'visibility', visibility);
-    }
-    if (map.current.getLayer('palm-oil-layer-outline')) {
-      map.current.setLayoutProperty('palm-oil-layer-outline', 'visibility', visibility);
-    }
-  }, [mapInitialized, showPalmOilLayer]);
-
-  // Toggle deforestation layer visibility
-  useEffect(() => {
-    if (!mapInitialized || !map.current) return;
-
+    if (!mapInitialized || !map.current || !deforestationLoaded) return;
+    
     if (map.current.getLayer('deforestation-layer')) {
       map.current.setLayoutProperty(
         'deforestation-layer',
         'visibility',
         showDeforestationLayer ? 'visible' : 'none'
       );
+      console.log(`Deforestation layer visibility set to: ${showDeforestationLayer ? 'visible' : 'none'}`);
     }
-  }, [mapInitialized, showDeforestationLayer]);
+  }, [mapInitialized, showDeforestationLayer, deforestationLoaded]);
+
+  // Update forest loss layer visibility when toggle changes
+  useEffect(() => {
+    if (!mapInitialized || !map.current || !forestloss1Loaded || !forestloss2Loaded) return;
+    
+    if (map.current.getLayer('forest-loss-1-layer')) {
+      map.current.setLayoutProperty(
+        'forest-loss-1-layer',
+        'visibility',
+        showForestLoss1Layer ? 'visible' : 'none'
+      );
+      map.current.setLayoutProperty(
+        'forest-loss-2-layer',
+        'visibility',
+        showForestLoss1Layer ? 'visible' : 'none'
+      );
+      console.log(`Forest loss layer visibility set to: ${showForestLoss1Layer ? 'visible' : 'none'}`);
+    }
+  }, [mapInitialized, showForestLoss1Layer, forestloss1Loaded]);
+
+  // Update palm layer visibility when toggle changes
+  useEffect(() => {
+    if (!mapInitialized || !map.current || !palmLoaded) return;
+    
+    if (map.current.getLayer('palm-source-id')) {
+      map.current.setLayoutProperty(
+        'palm-source-id',
+        'visibility',
+        showPalmLayer ? 'visible' : 'none'
+      );
+      console.log(`Palm oil concession layer visibility set to: ${showPalmLayer ? 'visible' : 'none'}`);
+    }
+  }, [mapInitialized, showPalmLayer, palmLoaded]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">
