@@ -16,11 +16,59 @@ import uvicorn
 from typing import List, Optional
 import os
 from dotenv import load_dotenv
+import traceback
 
-from database import get_projects, get_project_details, store_analysis_results, update_regional_analy_summary
-from llm_service import extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
-from file_service import process_uploaded_file, store_file
-from models import ProjectAnalysisRequest, ProjectAnalysisResponse # these are class formats 
+# Import core database functions that don't depend on LlamaIndex
+from database import get_projects, get_project_details, update_regional_analy_summary
+
+# Safely import optional components
+store_analysis_results = None
+process_uploaded_file = None
+store_file = None
+extract_doc_basicInfo = None
+analyze_policy_risks = None
+analyze_projectdesign_risks = None
+
+# Try to import optional components that use LlamaIndex
+try:
+    from file_service import process_uploaded_file, store_file
+except ImportError as e:
+    print(f"Warning: Could not import file_service: {e}")
+    print("File upload functionality will be disabled")
+
+try:
+    from llm_service import extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
+except ImportError as e:
+    print(f"Warning: Could not import llm_service: {e}")
+    print("Document analysis functionality will be disabled")
+
+try:
+    from database import store_analysis_results
+except ImportError as e:
+    print(f"Warning: Could not import store_analysis_results: {e}")
+    print("Project analysis storage will be disabled")
+
+try:
+    from models import ProjectAnalysisRequest, ProjectAnalysisResponse
+except ImportError as e:
+    print(f"Warning: Could not import models: {e}")
+    print("Using fallback model definitions")
+    
+    # Define fallback models if imports fail
+    from pydantic import BaseModel
+    from typing import Dict, List, Optional, Any
+    
+    class ProjectAnalysisRequest(BaseModel):
+        query: str
+        document_text: str
+        policy_documents: Optional[str] = None
+        regional_policies: Optional[str] = None
+        
+    class ProjectAnalysisResponse(BaseModel):
+        projectData: Dict[str, Any]
+        queryResponse: str
+        riskMetrics: List[Dict[str, Any]]
+        regionalInsights: Dict[str, Any]
 
 load_dotenv()
 
@@ -42,7 +90,31 @@ async def get_all_projects():
 # this is the api to get all project details from supabase
 @app.get("/api/projects/{project_code}")
 async def get_project(project_code: str):
-    return await get_project_details(project_code)
+    try:
+        print(f"Fetching project details for project_code: {project_code}")
+        project_details = await get_project_details(project_code)
+        if not project_details:
+            print(f"No project found with code: {project_code}")
+            raise HTTPException(status_code=404, detail=f"Project with code {project_code} not found")
+        print(f"Successfully fetched project details for {project_code}")
+        return project_details
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error fetching project details: {error_msg}")
+        traceback_str = traceback.format_exc()
+        print(f"Traceback: {traceback_str}")
+        
+        # Return a more specific error message
+        if "policy_analysis" in error_msg:
+            raise HTTPException(status_code=500, detail="Error parsing policy_analysis field")
+        elif "news" in error_msg:
+            raise HTTPException(status_code=500, detail="Error parsing news field")
+        elif "landuse_time_series" in error_msg:
+            raise HTTPException(status_code=500, detail="Error with landuse_time_series table")
+        elif "uuid" in error_msg.lower():
+            raise HTTPException(status_code=500, detail="Invalid UUID format for project ID")
+        else:
+            raise HTTPException(status_code=500, detail=f"Error fetching project details: {error_msg}")
 
 @app.get("/api/projects/{code}/exists")
 async def check_project_exists(code: str):
@@ -52,6 +124,8 @@ async def check_project_exists(code: str):
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
+    if store_file is None or process_uploaded_file is None:
+        raise HTTPException(status_code=500, detail="File upload functionality is disabled")
     try:
         file_id = await store_file(file) # file_id is a generated uuid
         document_index= await process_uploaded_file(file)
@@ -61,6 +135,8 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/api/analyze")
 async def analyze_project_llm(request: ProjectAnalysisRequest):
+    if extract_doc_basicInfo is None or analyze_policy_risks is None or analyze_projectdesign_risks is None or store_analysis_results is None:
+        raise HTTPException(status_code=500, detail="Document analysis functionality is disabled")
     try:
         # Extract document data
         project_data = await extract_doc_basicInfo(request.document_text)
@@ -172,7 +248,13 @@ async def get_landuse_timeseries(project_code: str):
 @app.post("/api/projects/{project_code}/update-summary")
 async def update_project_summary(project_code: str, request: dict):
     try:
-        success = await update_regional_analy_summary(project_code, request)
+        # Extract the necessary fields from the request dictionary
+        summary = request.get("summary", "")
+        policy_analysis = request.get("policy_analysis", None)
+        news = request.get("news", None)
+        
+        # Pass the extracted values to the update_regional_analy_summary function
+        success = await update_regional_analy_summary(project_code, summary, policy_analysis, news)
         if success:
             return {"status": "success", "message": f"Summary updated for project {project_code}"}
         else:
@@ -180,7 +262,7 @@ async def update_project_summary(project_code: str, request: dict):
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error updating project summary: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=3005, reload=True)

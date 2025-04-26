@@ -1,35 +1,29 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AIAnalysisResponse } from "@/lib/types";
-import { Copy, Check, MessageSquare } from "lucide-react";
+import { AIAnalysisResponse, NewsArticle } from "@/lib/types";
+import { Copy, Check, MessageSquare, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 // This interface defines the props for the AIAnalysisCard component.
 // It ensures that the component receives the correct data structure,
 // which is essential for type safety and proper rendering of the analysis results.
+
+// data structure expected: AIAnalysisResponseç
 interface AIAnalysisCardProps {
   data: AIAnalysisResponse;
 }
 
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
-  // console.log("Recommendations:", data.summary.recommendations);
   const [copied, setCopied] = useState<boolean>(false);
   const copyToClipboard = () => {
     const text = `
       Project: ${data.projectData.name}
       
-      Query: ${data.queryResponse}
-      
       Summary: ${data.summary.summary}
       
-      Risk Metrics:
-      ${data.riskMetrics.map(metric => `- ${metric.category}: ${metric.score}/100 - ${metric.description}`).join('\n')}
-      
-      Recommendations:
-      ${data.summary.recommendations.map(rec => `- ${rec.action} (Priority: ${rec.priority})`).join('\n')}
-  
-      Additional Insights: ${data.summary.additionalInsights || 'None'}
+      Policy Analysis:
+      ${data.summary.policyAssessment ? Object.entries(data.summary.policyAssessment).map(([key, value]) => `- ${key}: ${value}`).join('\n') : 'No policy analysis available'}
     `;
 
     navigator.clipboard.writeText(text);
@@ -38,7 +32,6 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
 
     setTimeout(() => setCopied(false), 2000);
   };
-
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
@@ -70,41 +63,46 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Your Query</h3>
-          <div className="bg-muted/50 p-3 rounded-md">
-            <p className="font-medium">{data.queryResponse}</p>
-          </div>
-        </div>
-
-        <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Summary</h3>
           <p>{data.summary.summary}</p>
         </div>
 
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Recommendations</h3>
-          <ul className="space-y-2">
-            {data.summary.recommendations.map((recommendation, index) => (
-              <li key={index} className="flex items-start">
-                <span className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs mr-2 shrink-0 mt-0.5">
-                  {index + 1}
-                </span>
-                <span>
-                  {recommendation.action} (Priority: {recommendation.priority})
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {data.summary.additionalInsights && (
+        {data.summary.policyAssessment && (
           <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Additional Insights</h3>
-            <div className="bg-secondary/30 p-3 rounded-md">
-              <p>{data.summary.additionalInsights}</p>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Policy Analysis</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(data.summary.policyAssessment).map(([key, value]) => (
+                <div key={key} className="bg-secondary/30 p-3 rounded-md">
+                  <h4 className="font-medium capitalize mb-1">{key.replace('_', ' ')}</h4>
+                  <p className="text-sm line-clamp-4">{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {data.summary.newsSearch && data.summary.newsSearch.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Related News Articles</h3>
+            <div className="space-y-3">
+              {data.summary.newsSearch.map((article: NewsArticle, index: number) => (
+                <div key={index} className="bg-secondary/30 p-3 rounded-md">
+                  <h4 className="font-medium mb-1">{article.title}</h4>
+                  <p className="text-sm mb-2">{article.content}</p>
+                  <a 
+                    href={article.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary text-sm flex items-center hover:underline"
+                  >
+                    Read More <ExternalLink className="h-3 w-3 ml-1" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </CardContent>
     </Card>
   );

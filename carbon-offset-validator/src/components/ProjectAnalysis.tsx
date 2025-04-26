@@ -8,7 +8,7 @@ import LandusePieChart from "./LandusePieChart";
 import LanduseTimeSeriesChart from "./LanduseTimeSeriesChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// define a typescript interface with data prop type AIAnalysisResponse(structured data format)
+// define a typescript interface with input data prop type AIAnalysisResponse(structured data format)
 interface ProjectAnalysisProps {
   // must receive a data prop of type AIAnalysisResponse
   data: AIAnalysisResponse;

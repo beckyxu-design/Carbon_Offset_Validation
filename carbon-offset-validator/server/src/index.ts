@@ -181,7 +181,32 @@ app.get('/api/projects/:code', async (req, res) => {
       console.error('Error fetching summary:', summaryError);
       throw summaryError;
     }
+
+    // Get policy_analysis and news from the summaryData instead of making another query
+    let policyAnalysis = {};
+    let newsSearch = [];
     
+    try {
+      if (summaryData) {
+        // Handle policy_analysis - parse if it's a string
+        if (summaryData.policy_analysis) {
+          policyAnalysis = typeof summaryData.policy_analysis === 'string' 
+            ? JSON.parse(summaryData.policy_analysis)
+            : summaryData.policy_analysis;
+        }
+        
+        // Handle news - parse if it's a string
+        if (summaryData.news) {
+          newsSearch = typeof summaryData.news === 'string'
+            ? JSON.parse(summaryData.news)
+            : summaryData.news;
+        }
+      }
+    } catch (parseError) {
+      console.error('Error parsing policy_analysis or news data:', parseError);
+      // Continue with empty objects if parsing fails
+    }
+
     // Get risk metrics
     const { data: riskMetricsData, error: riskError } = await supabase
       .from('risk_summary_metrics')
@@ -246,7 +271,11 @@ app.get('/api/projects/:code', async (req, res) => {
 
     const response = {
       project: projectData,
-      summary: summaryData,
+      summary: {
+        ...summaryData,
+        policy_analysis: policyAnalysis,
+        news: newsSearch
+      },
       riskMetrics: riskMetricsData,
       timeSeriesData: timeSeriesData,
       pieChartData: pieChartData,

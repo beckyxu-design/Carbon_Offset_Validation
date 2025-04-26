@@ -145,6 +145,7 @@ const Results = () => {
   }
 
   return (
+    
     <SplitLayout showMap={true}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">

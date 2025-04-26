@@ -1,7 +1,6 @@
 import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
 import { getProjectData } from './api';
 
-
 // Get the base URL from environment variables, defaulting to localhost for development
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
 
@@ -10,12 +9,21 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
     // Extract project code and query
     const { projectCode, query } = request;
 
+    console.log('Fetching project data for code:', projectCode);
     // Fetch actual project data from the database
     const { data: projectData, error } = await getProjectData(projectCode);
     
-    if (error || !projectData) {
-      throw new Error(error || 'Failed to fetch project data');
+    if (error) {
+      console.error('Error from getProjectData:', error);
+      throw new Error(error);
     }
+    
+    if (!projectData) {
+      console.error('No project data returned');
+      throw new Error('Failed to fetch project data');
+    }
+
+    console.log('Project data received:', JSON.stringify(projectData, null, 2));
 
     // Create default document structure
     const defaultDoc: Document = {
@@ -59,26 +67,33 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
 
     console.log('landuseTimeSeriesData:', landuseTimeSeriesData)
 
+
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {
       projectData: projectData.project,
       queryResponse: '',
       summary: {
         summary: projectData.summary && typeof projectData.summary === 'object' 
-          ? (projectData.summary.summary || projectData.summary.overall_summary || 'No analysis available.')
+          ? (projectData.summary.summary || 'No analysis available.')
           : 'No analysis available.',
-        recommendations: projectData.summary && typeof projectData.summary === 'object'
-          ? (Array.isArray(projectData.summary.recommendations)
-              ? projectData.summary.recommendations.map(rec => 
-                  typeof rec === 'string' 
-                    ? { action: rec, priority: 'Medium' } 
-                    : { action: rec.action || 'Unknown action', priority: rec.priority || 'Medium' }
-                )
-              : [])
-          : [],
-        additionalInsights: projectData.summary && typeof projectData.summary === 'object'
-          ? (projectData.summary.additional_insights || projectData.summary.additionalInsights || 'No additional insights available.')
-          : 'No additional insights available.',
+        policy_analysis: projectData.summary && typeof projectData.summary === 'object'
+          ? projectData.summary.policy_analysis
+          : undefined,
+        news: projectData.summary && typeof projectData.summary === 'object'
+          ? projectData.summary.news
+          : undefined,
+        // Parse policy_analysis only if it exists and is valid
+        policyAssessment: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.policy_analysis
+          ? (typeof projectData.summary.policy_analysis === 'string' 
+              ? JSON.parse(projectData.summary.policy_analysis) 
+              : projectData.summary.policy_analysis)
+          : undefined,
+        // Parse news only if it exists and is valid
+        newsSearch: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.news
+          ? (typeof projectData.summary.news === 'string' 
+              ? JSON.parse(projectData.summary.news) 
+              : projectData.summary.news)
+          : []
       },
       riskMetrics: (projectData.riskMetrics || []).map(metric => ({
         category: metric.category || 'Unknown',

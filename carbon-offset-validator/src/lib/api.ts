@@ -98,7 +98,11 @@ export const getProjectData = async (projectCode?: string): Promise<ApiResponse<
         data: {
           project: response.data[0], // Use the first project as the main project
           projects: response.data,   // Include all projects in the response
-          summary: { summary: '', recommendations: [], additionalInsights: '' },
+          summary: {
+            summary: '',
+            policy_analysis: undefined,
+            news: undefined,
+          },
           riskMetrics: [],
           timeSeriesData: [],
           landuseTimeSeriesData: [],

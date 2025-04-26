@@ -87,8 +87,30 @@ export interface Document {
  */
 export interface Summary {
   summary: string;
-  recommendations: string[];
-  additionalInsights: string;
+  policy_analysis?: string; // JSON string from Supabase
+  news?: string | NewsArticle[]; // JSON string or parsed array from Supabase
+  // policyAssessment?: PolicyAssessment; // Parsed policy_analysis for frontend
+  // newsSearch?: NewsArticle[]; // Parsed news for frontend
+}
+
+/**
+ * News article from search interface
+ */
+export interface NewsArticle {
+  title: string;
+  url: string;
+  content: string;
+}
+
+/**
+ * Policy assessment interface
+ */
+export interface PolicyAssessment {
+  regulatory?: string;
+  finance?: string;
+  permanence?: string;
+  local_economy?: string;
+  [key: string]: string | undefined;
 }
 
 /**
@@ -98,6 +120,8 @@ export interface AIAnalysisResponse {
   projectData: Project;
   queryResponse: string;
   summary: Summary;
+  policyAssessment?: PolicyAssessment;
+  newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
   pieChartData: PieChartData[];
@@ -156,6 +180,8 @@ export interface ProjectDataResponse {
   project: Project;
   projects?: Project[];  // Optional array of projects for listing all projects
   summary: Summary;
+  policyAssessment?: PolicyAssessment;
+  newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
