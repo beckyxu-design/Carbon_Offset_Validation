@@ -23,7 +23,7 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
   // Log data for debugging
   useEffect(() => {
     console.log("Project data:", data);
-    console.log("Land use time series data:", landuseData);
+    // console.log("Land use time series data:", landuseData);
   }, [data, landuseData]);
 
   return (

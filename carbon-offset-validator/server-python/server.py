@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 import traceback
 
 # Import core database functions that don't depend on LlamaIndex
-from database import get_projects, get_project_details, update_regional_analy_summary
+from database import get_projects, get_palm_data, get_project_details, update_regional_analy_summary
 
 # Safely import optional components
 store_analysis_results = None
@@ -86,6 +86,24 @@ app.add_middleware(
 @app.get("/api/projects")
 async def get_all_projects():
     return await get_projects()
+
+@app.get("/api/gis/palmoil")
+async def get_palm_data_server():
+    try:
+        print("Fetching palm oil concession data...")
+        features = await get_palm_data()
+        print(f"Fetched {len(features)} palm oil concession records")
+        
+        # Format the response as a proper GeoJSON FeatureCollection
+        geojson_feature_collection = {
+            "type": "FeatureCollection",
+            "features": features
+        }
+        
+        return {"palmOilData": geojson_feature_collection}
+    except Exception as e:
+        print(f"Error in get_palm_data_server: {e}")
+        return {"error": f"Failed to fetch palm oil data: {str(e)}"}
 
 # this is the api to get all project details from supabase
 @app.get("/api/projects/{project_code}")
@@ -265,4 +283,5 @@ async def update_project_summary(project_code: str, request: dict):
         raise HTTPException(status_code=500, detail=f"Error updating project summary: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=3005, reload=True)
+    uvicorn.run("server:app", host="0.0.0.0", port=3006, reload=True)
+    # uvicorn.run("server:app", host="0.0.0.0", port=3005, reload=True)

@@ -67,7 +67,6 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
 
     console.log('landuseTimeSeriesData:', landuseTimeSeriesData)
 
-
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {
       projectData: projectData.project,
@@ -82,18 +81,18 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
         news: projectData.summary && typeof projectData.summary === 'object'
           ? projectData.summary.news
           : undefined,
-        // Parse policy_analysis only if it exists and is valid
-        policyAssessment: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.policy_analysis
-          ? (typeof projectData.summary.policy_analysis === 'string' 
-              ? JSON.parse(projectData.summary.policy_analysis) 
-              : projectData.summary.policy_analysis)
-          : undefined,
-        // Parse news only if it exists and is valid
-        newsSearch: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.news
-          ? (typeof projectData.summary.news === 'string' 
-              ? JSON.parse(projectData.summary.news) 
-              : projectData.summary.news)
-          : []
+        // // Parse policy_analysis only if it exists and is valid
+        // policyAssessment: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.policy_analysis
+        //   ? (typeof projectData.summary.policy_analysis === 'string' 
+        //       ? JSON.parse(projectData.summary.policy_analysis) 
+        //       : projectData.summary.policy_analysis)
+        //   : undefined,
+        // // Parse news only if it exists and is valid
+        // newsSearch: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.news
+        //   ? (typeof projectData.summary.news === 'string' 
+        //       ? JSON.parse(projectData.summary.news) 
+        //       : projectData.summary.news)
+        //   : []
       },
       riskMetrics: (projectData.riskMetrics || []).map(metric => ({
         category: metric.category || 'Unknown',

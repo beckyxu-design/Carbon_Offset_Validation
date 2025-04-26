@@ -17,10 +17,9 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
   const [activeTab, setActiveTab] = useState<string>("deforestation");
   
   useEffect(() => {
-    console.log("TimeSeriesData received:", timeSeriesData);
     if (timeSeriesData && timeSeriesData.length > 0) {
-      console.log("First data point:", timeSeriesData[0]);
-      console.log("Data keys:", Object.keys(timeSeriesData[0]));
+      // console.log("First data point:", timeSeriesData[0]);
+      // console.log("Data keys:", Object.keys(timeSeriesData[0]));
     } else {
       console.log("No time series data available or empty array");
     }
@@ -31,9 +30,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
       console.log("Tooltip not showing. Payload:", payload);
       return null;
     }
-    
-    console.log("Tooltip payload:", payload);
-    
+        
     return (
       <div className="bg-white p-3 rounded-md shadow-lg border border-border">
         <p className="text-sm font-medium">{label}</p>
@@ -85,7 +82,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
               )}
               {timeSeriesData.length > 0 && (
                 <>
-                  {console.log("Rendering bar chart with data:", timeSeriesData)}
+                  {/* {console.log("Rendering bar chart with data:", timeSeriesData)} */}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={timeSeriesData}
@@ -133,7 +130,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
               )}
               {timeSeriesData.length > 0 && (
                 <>
-                  {console.log("Rendering line chart with data:", timeSeriesData)}
+                  {/* {console.log("Rendering line chart with data:", timeSeriesData)} */}
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                       data={timeSeriesData}

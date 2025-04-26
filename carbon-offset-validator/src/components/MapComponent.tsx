@@ -2,21 +2,38 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useMap } from '@/contexts/MapContext';
-import { sampleProject, sampleGeoJSON } from '@/lib/sample-data';
+import { sampleGeoJSON } from '@/lib/sample-data';
 import MapControls from './MapControls';
 import ProjectSelector from './ProjectSelector';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { getPalmoilData } from '@/lib/api';
 
-// We'll use a Mapbox-hosted tileset instead of a local GeoTIFF
-// In a real application, replace with your actual tileset ID
+// Define GeoJSON types for TypeScript
+interface GeoJSONFeature {
+  type: string;
+  geometry: any;
+  properties?: any;
+}
+
+interface GeoJSONFeatureCollection {
+  type: 'FeatureCollection';
+  features: GeoJSONFeature[];
+}
+
+interface GeoJSON {
+  type: string;
+  features: GeoJSONFeature[];
+}
+
 const MapComponent: React.FC = () => {
-  const mapContainerRef = useRef<HTMLDivElement>(null); //A React ref that will be attached to a div element in your JSX
-  const map = useRef<mapboxgl.Map | null>(null); //A ref that will store the Mapbox map instance
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
   const { 
     selectedProjectId, 
     showDeforestationLayer,
+    showPalmOilLayer,
     setSelectedProjectId,
     geospatialData
   } = useMap();
@@ -24,7 +41,6 @@ const MapComponent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [deforestationLoaded, setDeforestationLoaded] = useState(false);
 
-  //loading basemap and load the project geojson
   useEffect(() => {
     if (!mapContainerRef.current || map.current) return;
 
@@ -36,7 +52,6 @@ const MapComponent: React.FC = () => {
       
       mapboxgl.accessToken = token;
       
-      // set basemap
       const newMap = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
@@ -44,14 +59,9 @@ const MapComponent: React.FC = () => {
         zoom: 5
       });
 
-      // Add navigation controls
-      newMap.addControl(
-        new mapboxgl.NavigationControl({visualizePitch: true}),
-        'bottom-right'
-      );
-      // Add attributions in a better position
-      newMap.addControl(new mapboxgl.AttributionControl({compact: true}), 'bottom-left');
-      // Add atmosphere and fog effects
+      newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+      newMap.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+
       newMap.on('style.load', () => {
         newMap.setFog({
           color: 'rgb(186, 210, 235)', 
@@ -59,14 +69,14 @@ const MapComponent: React.FC = () => {
           'horizon-blend': 0.1
         });
       });
+
       map.current = newMap;
 
-      // Add project layers when the map is ready
       newMap.on('load', () => {
         setMapInitialized(true);
         setError(null);
 
-        // Add project area layer
+        // Add project shape layer
         map.current?.addSource('project-area', {
           type: 'geojson',
           data: geospatialData || sampleGeoJSON
@@ -81,7 +91,6 @@ const MapComponent: React.FC = () => {
             'fill-opacity': 0.4
           }
         });
-
         map.current?.addLayer({
           id: 'project-area-line',
           type: 'line',
@@ -91,39 +100,24 @@ const MapComponent: React.FC = () => {
             'line-width': 2
           }
         });
+
+        // Add deforestation layer (unchanged)
         const TILESET_ID = 'ichobecky.cus4ehcj';
-        // Add deforestation layer using a Mapbox-hosted tileset
         try {
-          // beckyzqxu.b217gxob
-          // Using a standard Mapbox tileset that we know exists
           map.current?.addSource('deforestation-source', {
             type: 'raster',
-            // Using Mapbox's satellite tileset as a placeholder
             tiles: [
               `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
             ],
             tileSize: 256
           });
-          // map.current?.addSource('deforestation-source', {
-          //   type: 'raster',
-          //   // Using Mapbox's satellite tileset as a placeholder
-          //   tiles: [
-          //     `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
-          //   ],
-          //   tileSize: 256
-          // });
 
-          // Add raster layer with initial visibility based on context
           map.current?.addLayer({
             id: 'deforestation-layer',
             type: 'raster',
             source: 'deforestation-source',
             paint: {
               'raster-opacity': 0.9
-              ,
-              // 'raster-saturation': -0.9, // Make it more grayscale to represent deforestation data
-              // 'raster-contrast': 0.2,
-              // 'raster-brightness-min': 0.1
             },
             layout: {
               visibility: showDeforestationLayer ? 'visible' : 'none'
@@ -137,14 +131,13 @@ const MapComponent: React.FC = () => {
           toast.error('Failed to load deforestation layer');
         }
 
-        // Add click handler
+        // Add click handler for project area
         map.current?.on('click', 'project-area-fill', (e) => {
           if (e.features && e.features[0].properties) {
             setSelectedProjectId(e.features[0].properties.id);
           }
         });
 
-        // Change cursor on hover
         map.current?.on('mouseenter', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         });
@@ -153,7 +146,6 @@ const MapComponent: React.FC = () => {
         });
       });
 
-      // Clean up on unmount
       return () => {
         newMap.remove();
         map.current = null;
@@ -164,54 +156,114 @@ const MapComponent: React.FC = () => {
       setError(errorMessage);
       toast.error(errorMessage);
     }
-  }, [setSelectedProjectId, geospatialData, showDeforestationLayer]);
+  }, [setSelectedProjectId, geospatialData]);
 
-  // Update map bounding box to locate project geojson
+  // Update project area bounds
   useEffect(() => {
-    if (!mapInitialized || !map.current) return;
+    if (!mapInitialized || !map.current || !geospatialData) return;
 
-    // If we have a map source and geospatial data, update the source
-    if (map.current.getSource('project-area') && geospatialData) {
-      (map.current.getSource('project-area') as mapboxgl.GeoJSONSource).setData(geospatialData);
+    const source = map.current.getSource('project-area') as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData(geospatialData);
       
-      // Try to fit the map to the bounds of the geospatial data
-      try {
-        // Create a bounding box for the features
-        const bounds = new mapboxgl.LngLatBounds();
-        
-        geospatialData.features.forEach(feature => {
-          if (feature.geometry.type === 'Polygon') {
-            const coordinates = feature.geometry.coordinates[0];
-            coordinates.forEach((coord: [number, number]) => {
+      const bounds = new mapboxgl.LngLatBounds();
+      geospatialData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+          feature.geometry.coordinates[0].forEach((coord: [number, number]) => {
+            bounds.extend(coord as mapboxgl.LngLatLike);
+          });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            polygon[0].forEach((coord: [number, number]) => {
               bounds.extend(coord as mapboxgl.LngLatLike);
             });
-          } else if (feature.geometry.type === 'MultiPolygon') {
-            // Handle MultiPolygon geometry type
-            const polygons = feature.geometry.coordinates;
-            polygons.forEach(polygon => {
-              // Each polygon has an outer ring (first element)
-              const outerRing = polygon[0];
-              outerRing.forEach((coord: [number, number]) => {
-                bounds.extend(coord as mapboxgl.LngLatLike);
-              });
-            });
-          } else if (feature.geometry.type === 'Point') {
-            bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
-          }
-        });
-        
-        // Only zoom to bounds if we have valid bounds
-        if (!bounds.isEmpty()) {
-          map.current.fitBounds(bounds, {
-            padding: 50,
-            maxZoom: 15
           });
+        } else if (feature.geometry.type === 'Point') {
+          bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
         }
-      } catch (error) {
-        console.error('Error fitting map to bounds:', error);
+      });
+
+      if (!bounds.isEmpty()) {
+        map.current.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 15
+        });
       }
     }
   }, [mapInitialized, geospatialData]);
+
+  // Fetch and display palm oil data
+  useEffect(() => {
+    if (!mapInitialized || !map.current) return;
+
+    const fetchPalmOilData = async () => {
+      try {
+        const response = await getPalmoilData();
+        if (response.data && response.data.palmOilData) {
+          const geojsonData: any = response.data.palmOilData;
+          console.log("Palm oil data:", geojsonData);
+
+          // Create a proper GeoJSON FeatureCollection object
+          const featureCollection = {
+            type: 'FeatureCollection',
+            features: Array.isArray(geojsonData) ? geojsonData : 
+                     (geojsonData && geojsonData.features ? geojsonData.features : [])
+          };
+
+          // Use a direct type cast to any to bypass TypeScript's type checking
+          // This is necessary when working with external library expectations
+          map.current?.addSource('palm-oil-data', {
+            type: 'geojson',
+            data: featureCollection as any
+          });
+          
+          map.current?.addLayer({
+            id: 'palm-oil-layer',
+            type: 'fill',
+            source: 'palm-oil-data',
+            paint: {
+              'fill-color': '#F9C80E',
+              'fill-opacity': 0.8
+            }
+          });
+
+          // Add an outline layer for better visibility
+          map.current?.addLayer({
+            id: 'palm-oil-layer-outline',
+            type: 'line',
+            source: 'palm-oil-data',
+            paint: {
+              'line-color': '#F86624',
+              'line-width': 1
+            }
+          });
+
+          console.log("Palm oil data added to map successfully");
+        } else {
+          throw new Error(response.error || 'Failed to load palm oil data');
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error("Error fetching palm oil data:", errorMessage);
+        toast.error("Failed to load palm oil data: " + errorMessage);
+      }
+    };
+
+    fetchPalmOilData();
+  }, [mapInitialized]);
+
+  // Toggle palm oil layer visibility
+  useEffect(() => {
+    if (!mapInitialized || !map.current) return;
+
+    const visibility = showPalmOilLayer ? 'visible' : 'none';
+    if (map.current.getLayer('palm-oil-layer')) {
+      map.current.setLayoutProperty('palm-oil-layer', 'visibility', visibility);
+    }
+    if (map.current.getLayer('palm-oil-layer-outline')) {
+      map.current.setLayoutProperty('palm-oil-layer-outline', 'visibility', visibility);
+    }
+  }, [mapInitialized, showPalmOilLayer]);
 
   // Toggle deforestation layer visibility
   useEffect(() => {
@@ -223,9 +275,6 @@ const MapComponent: React.FC = () => {
         'visibility',
         showDeforestationLayer ? 'visible' : 'none'
       );
-      console.log(`Deforestation layer visibility set to: ${showDeforestationLayer ? 'visible' : 'none'}`);
-    } else {
-      console.warn('Deforestation layer not found in map');
     }
   }, [mapInitialized, showDeforestationLayer]);
 

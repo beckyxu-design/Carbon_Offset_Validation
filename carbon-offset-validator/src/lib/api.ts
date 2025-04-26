@@ -3,17 +3,20 @@ import { Project, Summary, RiskMetric, TimeSeriesData, PieChartData, ProjectData
 
 // Get the base URL from environment variables, defaulting to localhost for development
 const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3005';
-
+// For Python server endpoints (running on different port)
+const pythonBaseUrl = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:3006';
 
 // API endpoints
 // these endpoints are from the database.py
 const endpoints = {
   projects: '/api/projects',
-  // checki f project exists
-  projectExists: (project_code: string) => `/api/projects/${project_code}/exists`,
+  //load the palm oil geojson data 
+  palmOilGIS: '/api/gis/palmoil',
+  // check if project exists
+  projectExists: (projectCode: string) => `/api/projects/${projectCode}/exists`,
   // get all project details
-  projectDetail: (project_code: string) => `/api/projects/${project_code}`, 
-  landuseTimeSeries: (project_code: string) => `/api/projects/${project_code}/landuse-timeseries`,
+  projectDetail: (projectCode: string) => `/api/projects/${projectCode}`, 
+  landuseTimeSeries: (projectCode: string) => `/api/projects/${projectCode}/landuse-timeseries`,
   analyze: '/api/analyze',
   upload: '/api/upload',
 };
@@ -23,64 +26,6 @@ interface ApiResponse<T> {
   data: T | null;
   error?: string;
 }
-
-
-// Function to upload a file
-export const uploadFile = async (file: File): Promise<ApiResponse<{ fileId: string, text: string }>> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await axios.post<{ fileId: string, text: string }>(
-      `${baseUrl}${endpoints.upload}`, 
-      formData, 
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    return { data: response.data };
-  } catch (error: any) {
-    console.error('Error uploading file:', error);
-    return { 
-      data: null, 
-      error: error?.response?.data?.error || error?.message || 'Failed to upload file'
-    };
-  }
-};
-
-// Function to upload a KML file (alias for uploadFile for backward compatibility)
-export const uploadKmlFile = uploadFile;
-
-// Function to upload a project document
-export const uploadProjectDocument = async (projectCode: string, file: File, documentType: string): Promise<ApiResponse<{ fileId: string, text: string }>> => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('projectCode', projectCode);
-    formData.append('documentType', documentType);
-
-    const response = await axios.post<{ fileId: string, text: string }>(
-      `${baseUrl}${endpoints.upload}/document`, 
-      formData, 
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    return { data: response.data };
-  } catch (error: any) {
-    console.error('Error uploading project document:', error);
-    return { 
-      data: null, 
-      error: error?.response?.data?.error || error?.message || 'Failed to upload project document'
-    };
-  }
-};
 
 // Fetch project data by project project_code
 // A promise is a JavaScript object representing the eventual completion or failure of an asynchronous operation.
@@ -178,6 +123,24 @@ export const checkProjectExists = async (projectCode: string): Promise<ApiRespon
   }
 };
 
+// Fetch palm oil concession data
+export const getPalmoilData = async (): Promise<ApiResponse<{ palmOilData: any[] }>> => {
+  try {
+    const response = await axios.get<{ palmOilData: any[] }>(
+      `${pythonBaseUrl}${endpoints.palmOilGIS}`
+    );
+    console.log('Palm oil concession data response:', response.data);
+    
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Error fetching palm oil concession data:', error);
+    return { 
+      data: null, 
+      error: error?.response?.data?.error || error?.message || 'Failed to fetch palm oil concession data'
+    };
+  }
+};
+
 // Function to analyze a project
 export const analyzeProject = async (
   projectCode: string, 
@@ -204,6 +167,63 @@ export const analyzeProject = async (
     return { 
       data: null, 
       error: error?.response?.data?.error || error?.message || 'Failed to analyze project'
+    };
+  }
+};
+
+// Function to upload a file
+export const uploadFile = async (file: File): Promise<ApiResponse<{ fileId: string, text: string }>> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await axios.post<{ fileId: string, text: string }>(
+      `${baseUrl}${endpoints.upload}`, 
+      formData, 
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Error uploading file:', error);
+    return { 
+      data: null, 
+      error: error?.response?.data?.error || error?.message || 'Failed to upload file'
+    };
+  }
+};
+
+// Function to upload a KML file (alias for uploadFile for backward compatibility)
+export const uploadKmlFile = uploadFile;
+
+// Function to upload a project document
+export const uploadProjectDocument = async (projectCode: string, file: File, documentType: string): Promise<ApiResponse<{ fileId: string, text: string }>> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('projectCode', projectCode);
+    formData.append('documentType', documentType);
+
+    const response = await axios.post<{ fileId: string, text: string }>(
+      `${baseUrl}${endpoints.upload}/document`, 
+      formData, 
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    return { data: response.data };
+  } catch (error: any) {
+    console.error('Error uploading project document:', error);
+    return { 
+      data: null, 
+      error: error?.response?.data?.error || error?.message || 'Failed to upload project document'
     };
   }
 };

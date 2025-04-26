@@ -259,9 +259,9 @@ app.get('/api/projects/:code', async (req, res) => {
       .eq('project_id', projectId)
       .order('month');
     
-    console.log(`Fetched ${landuseTimeSeriesData?.length || 0} landuse time series records for project ID: ${projectId}`);
+    // console.log(`Fetched ${landuseTimeSeriesData?.length || 0} landuse time series records for project ID: ${projectId}`);
     if (landuseTimeSeriesData && landuseTimeSeriesData.length > 0) {
-      console.log('First record:', landuseTimeSeriesData[0]);
+      // console.log('First record:', landuseTimeSeriesData[0]);
     }
     
     if (landuseTimeSeriesError) {

@@ -22,6 +22,25 @@ async def get_projects():
     response = supabase.table("projects").select("*").execute()
     return response.data
 
+async def get_palm_data():
+    try:
+        # Get the geojson column from the other_geo_data table
+        geo_response = supabase.table("other_geo_data").select("geojson").execute()
+        data = geo_response.data
+        
+        # Extract the GeoJSON features from the response
+        features = []
+        for item in data:
+            if 'geojson' in item and item['geojson']:
+                # If the item itself is already a complete GeoJSON feature, use it
+                features.append(item['geojson'])
+        
+        print(f"Retrieved {len(features)} palm oil features from database")
+        return features
+    except Exception as e:
+        print(f'database.py fail to get palm oil concession data from supabase: {e}')
+        return []
+
 async def get_project_details(project_code: str):
     '''    
     Summary: Get project data    

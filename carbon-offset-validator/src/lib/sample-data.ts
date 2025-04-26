@@ -32,6 +32,29 @@ export const sampleEmissionsData: EmissionsData[] = [
   { year: 2023, tonnes: 24000 }
 ];
 
+// Indonesia palm oil concessions GeoJSON path
+export const palmOilConcessionGeoJSON = {
+  type: "FeatureCollection",
+  features: [],
+  filePath: "/data/shapefiles/Indonesia_oil_palm_concessions/Indonesia_oil_palm_concessions.geojson"
+} as const;
+
+// Function to load the palm oil concessions GeoJSON data
+export const loadPalmOilConcessions = async (): Promise<FeatureCollection<Polygon>> => {
+  try {
+    const response = await fetch(palmOilConcessionGeoJSON.filePath);
+    if (!response.ok) {
+      throw new Error(`Failed to load palm oil concessions data: ${response.status}`);
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error loading palm oil concessions data:", error);
+    // Return the sample GeoJSON as fallback
+    return sampleGeoJSON;
+  }
+};
+
 // Sample risk metrics
 export const sampleRiskMetrics: RiskMetric[] = [
   {
@@ -96,6 +119,8 @@ export const sampleGeoJSON: FeatureCollection<Polygon> = {
     }
   ]
 };
+
+
 
 // Sample analysis response
 export const sampleAnalysisResponse: AIAnalysisResponse = {
