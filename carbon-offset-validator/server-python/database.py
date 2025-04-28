@@ -22,6 +22,7 @@ async def get_projects():
     response = supabase.table("projects").select("*").execute()
     return response.data
 
+# palm data function is not in use, save it for future reference
 async def get_palm_data():
     try:
         # Get the geojson column from the other_geo_data table
@@ -134,26 +135,102 @@ async def get_project_details(project_code: str):
         "geospatialData": geo_response.data
     }
 
+async def get_project_forest_loss(project_code: str):
+    '''    
+    Summary: Get project data    
+    "timeSeriesData": time_series_response.data,
+    '''
+    # Check if project_code is numeric (to handle requests by ID)
+    if project_code.isdigit():
+        # If numeric, look up the project by project_code field instead
+        # (Not searching by ID since it's a UUID, not a simple integer)
+        project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()
+    else:
+        # Otherwise find by project_code as usual
+        project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()
+    
+    project = project_response.data
+    
+    if not project:
+        return None
+    
+    project_id = project["id"]
+
+    # Get time series data
+    time_series_response = supabase.table("time_series_data").select("timestamp", "deforestation_area").eq("project_id", project_id).order("timestamp").execute()
+    # # Get landuse time series data with correct column names
+    # landuse_time_series_response = supabase.table("landuse_time_series").select("*").eq("project_id", project_id).order("month").execute()
+    
+    return {
+        "timeSeriesData": time_series_response.data,
+        # "landuseTimeSeriesData": landuse_time_series_response.data,
+    }
+
 async def store_analysis_results(project_data, risk_metrics):
     
     # Insert project
     project_response = supabase.table("projects").insert(project_data).execute()
     project_id = project_response.data[0]["id"]
-    # insert project code 
-    
-    # Insert risk metrics
-    for metric in risk_metrics:
-        supabase.table("risk_summary_metrics").insert({
-            "project_id": project_id,
-            "category": metric["category"],
-            "score": metric["score"],
-            "impact": metric["impact"],
-            "likelihood": metric["likelihood"],
-            "description": metric["description"]
-        }).execute()
-    
+
     return project_id
     
+async def update_vcm_analy_summary(project_code: str, risk_metrics: list, project_id = None):
+    """
+    Update or upload risk metrics to the risk_summary_metrics table.
+
+    Args:
+        project_code: project code in the projects table
+        risk_metrics: List of dictionaries containing risk metrics
+        project_id: UUID of the project in project SB table
+    Returns:
+        bool: True if data was updated/inserted successfully
+    """
+    try:
+        if not project_id:
+            # Find the project by project_code
+            print(f"Querying Supabase for project with code: {project_code}")
+            project_response = supabase.table("projects").select("*").eq("project_code", project_code).single().execute()
+            if not project_response.data:
+                print(f"No project found with code: {project_code}")
+                return False
+            project_id = project_response.data["id"]
+            print(f"Found project with ID: {project_id}")
+
+        # Fetch existing data for this project
+        print(f"Checking for existing summary for project_id: {project_id}")
+        existing_summary = supabase.table("risk_summary_metrics").select("*").eq("project_id", project_id).execute()
+        existing_categories = {row['category']: row['id'] for row in (existing_summary.data or [])}
+
+        # Update or insert each metric
+        for metric in risk_metrics:
+            data = {
+                "project_id": project_id,
+                "category": metric["category"],
+                "score": metric["score"],
+                "impact": metric["impact"],
+                "likelihood": metric["likelihood"],
+                "description": metric["description"]
+            }
+            if metric["category"] in existing_categories:
+                # Update existing row
+                row_id = existing_categories[metric["category"]]
+                print(f"Updating metric for category '{metric['category']}' (row id {row_id})")
+                supabase.table("risk_summary_metrics").update(data).eq("id", row_id).execute()
+            else:
+                # Insert new row
+                print(f"Inserting new metric for category '{metric['category']}'")
+                supabase.table("risk_summary_metrics").insert(data).execute()
+
+        print(f"Risk summary metrics updated/inserted for project with code: {project_code}")
+        return True
+
+    except Exception as e:
+        print(f"Error updating project vcm analysis: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return False
+   
 async def update_regional_analy_summary(project_code: str, summary: str, policy_analysis: Dict[str, Any], news: List[Dict[str, Any]]):
     """
     Update or upload national policy and news analysis to the project_summary table.
@@ -227,3 +304,35 @@ async def update_regional_analy_summary(project_code: str, summary: str, policy_
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         return False
+
+# helper function for overall analysis
+def parse_summary_and_recommendations(summary_all: str):
+    """
+    Parse the LLM output into summary and recommendations.
+    """
+    # Use regex to extract sections
+    summary_match = re.search(r"Summary:\s*(.+?)(?:Recommendations:|$)", summary_all, re.DOTALL | re.IGNORECASE)
+    recommendations_match = re.search(r"Recommendations:\s*(.+)", summary_all, re.DOTALL | re.IGNORECASE)
+
+    summary = summary_match.group(1).strip() if summary_match else ""
+    recommendations = recommendations_match.group(1).strip() if recommendations_match else ""
+    return summary, recommendations
+    
+async def upload_overall_analysis(project_id: str, summary_all: str):
+    """
+    Parse summary and recommendations from summary_all and upload to Supabase.
+    """
+    summary, recommendations = parse_summary_and_recommendations(summary_all)
+    data = {
+        "project_id": project_id,
+        "summary": summary,
+        "recommendations": recommendations
+    }
+    try:
+        response = supabase.table("overall_analysis_text").insert(data).execute()
+        print(f"Uploaded overall analysis for project_id {project_id}")
+        return response
+    except Exception as e:
+        print(f"Error uploading overall analysis: {e}")
+        return None
+    

@@ -140,6 +140,7 @@ export interface AIAnalysisRequest {
   projectCode: string;
   query: string;
   files?: UploadedFile[]; // Add optional files field
+  registry: string; // Add registry field for carbon registry selection
 }
 
 /**

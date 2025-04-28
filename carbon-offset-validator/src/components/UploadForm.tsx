@@ -1,12 +1,11 @@
-
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AIAnalysisRequest, FileType, UploadedFile } from "@/lib/types";
-import { uploadFile } from "@/lib/api";
+import { uploadFile, getProjectData } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
@@ -25,11 +24,28 @@ interface UploadFormProps {
 
 const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) => {
   const [projectCode, setProjectCode] = useState<string>("");
-  const [query, setQuery] = useState<string>("");
+  const [query, setQuery] = useState<string>("what is the deforestation rate");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [registry, setRegistry] = useState<string>("Verra");
+  const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const { data, error } = await getProjectData();
+        if (error) throw new Error(error);
+        if (data && data.projects && Array.isArray(data.projects)) {
+          setAvailableProjects(data.projects.slice(0, 3).map((p: any) => p.project_code));
+        }
+      } catch (err) {
+        console.error("Failed to fetch projects", err);
+      }
+    }
+    fetchProjects();
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -86,6 +102,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
     const request: AIAnalysisRequest = {
       projectCode: projectCode.trim(),
       query: query.trim(),
+      registry: registry,
       files: files.length > 0 ? files : undefined
     };
     
@@ -106,6 +123,46 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+      {/* Registry toggle */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium block mb-1">Registry</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="registry"
+              value="Verra"
+              checked={registry === "Verra"}
+              onChange={() => setRegistry("Verra")}
+              className="accent-blue-600"
+            />
+            Verra
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="registry"
+              value="Gold Standard"
+              checked={registry === "Gold Standard"}
+              onChange={() => setRegistry("Gold Standard")}
+              className="accent-yellow-600"
+            />
+            Gold Standard
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="registry"
+              value="American Carbon Registry"
+              checked={registry === "American Carbon Registry"}
+              onChange={() => setRegistry("American Carbon Registry")}
+              className="accent-green-600"
+            />
+            American Carbon Registry
+          </label>
+        </div>
+      </div>
+      
       <div className="space-y-2">
         <Label htmlFor="projectCode" className="text-sm font-medium">
           Project Code
@@ -114,10 +171,26 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
           id="projectCode"
           value={projectCode}
           onChange={(e) => setProjectCode(e.target.value)}
-          placeholder="Enter project code (e.g., Project 5032)"
+          placeholder="Enter project code (e.g., 3226)"
           className="glass-input h-12"
           required
         />
+        {availableProjects.length > 0 && (
+          <div className="flex gap-2 mt-2">
+            {availableProjects.map((code) => (
+              <Button
+                key={code}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setProjectCode(code)}
+                className="text-xs px-2 py-1"
+              >
+                {code}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
       
       {/* File upload */}
@@ -184,7 +257,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
         )}
       </div>
       
-      {/* Query input */}
+      {/* Query input
       <div className="space-y-2">
         <Label htmlFor="query" className="text-sm font-medium">
           Your Question
@@ -197,7 +270,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
           className="glass-input min-h-[120px]"
           required
         />
-      </div>
+      </div> */}
       
       {/* Submit button */}
       <Button 
