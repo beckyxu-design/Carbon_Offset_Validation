@@ -46,6 +46,7 @@ async def get_project_details(project_code: str):
     '''    
     Summary: Get project data    
     "project": project,
+    "overallSummary": overall_summary_test with summary and recomendation,
     "summary": summary_data with summary, policy_analysis, news fields,
     "riskMetrics": risk_response.data,
     "timeSeriesData": time_series_response.data,
@@ -69,9 +70,10 @@ async def get_project_details(project_code: str):
     
     project_id = project["id"]
     
-    # Get summary
+    # Get overall risk summary (vcm & national)
+    overall_analysis_response = supabase.table("overall_analysis_text").select("*").eq("project_id", project_id).execute()
+    # Get national regional risk analysis summary
     summary_response = supabase.table("project_summary").select("*").eq("project_id", project_id).single().execute()
-    print(summary_response.data)
     # Format summary data to match frontend expectations
     summary_data = summary_response.data
     if summary_data:
@@ -127,6 +129,7 @@ async def get_project_details(project_code: str):
     
     return {
         "project": project,
+        "overallSummary": overall_analysis_response.data,
         "summary": summary_data,
         "riskMetrics": risk_response.data,
         "timeSeriesData": time_series_response.data,

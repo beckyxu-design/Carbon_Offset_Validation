@@ -9,9 +9,9 @@ interface RiskSummaryTableProps {
 }
 
 const getRiskLevel = (score: number) => {
-  if (score >= 80) return { level: 'Critical', color: 'text-red-500' };
-  if (score >= 60) return { level: 'High', color: 'text-orange-500' };
-  if (score >= 40) return { level: 'Medium', color: 'text-yellow-500' };
+  if (score >= 8) return { level: 'Critical', color: 'text-red-500' };
+  if (score >= 6) return { level: 'High', color: 'text-orange-500' };
+  if (score >= 4) return { level: 'Medium', color: 'text-yellow-500' };
   return { level: 'Low', color: 'text-green-500' };
 };
 

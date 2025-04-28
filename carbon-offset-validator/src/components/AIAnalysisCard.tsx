@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AIAnalysisResponse, NewsArticle } from "@/lib/types";
-import { Copy, Check, MessageSquare, ExternalLink } from "lucide-react";
+import { Copy, Check, MessageSquare, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 // This interface defines the props for the AIAnalysisCard component.
@@ -16,6 +16,9 @@ interface AIAnalysisCardProps {
 
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   const [copied, setCopied] = useState<boolean>(false);
+  const [expandedSummary, setExpandedSummary] = useState<boolean>(false);
+  const [expandedNews, setExpandedNews] = useState<boolean>(false);
+  
   const copyToClipboard = () => {
     const text = `
       Project: ${data.projectData.name}
@@ -32,6 +35,17 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
 
     setTimeout(() => setCopied(false), 2000);
   };
+  
+  // Split summary into sentences for showing only first 3
+  const summarySentences = data.summary.summary.split('.').filter(s => s.trim()).map(s => s.trim() + '.');
+  const visibleSentences = expandedSummary ? summarySentences : summarySentences.slice(0, 3);
+  
+  // Get visible news articles (first 2 when collapsed, all when expanded)
+  const newsArticles = data.summary.newsSearch || [];
+  const visibleNewsArticles = expandedNews 
+    ? newsArticles 
+    : newsArticles.slice(0, 1);
+    
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
@@ -39,7 +53,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center">
             <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-            AI Analysis Results
+            Analysis Result
           </CardTitle>
           <Button
             variant="ghost"
@@ -62,9 +76,38 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2">Summary</h3>
-          <p>{data.summary.summary}</p>
+        <div className="relative">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Analysis Summary</h3>
+          <div className="text-base leading-relaxed">
+            {visibleSentences.map((sentence, idx) => (
+              <span key={idx}>
+                {sentence}{' '}
+              </span>
+            ))}
+          </div>
+          
+          {/* Gradient fade for truncated text */}
+          {!expandedSummary && summarySentences.length > 3 && (
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+          )}
+          
+          {/* Expand/collapse button - only show if there are more than 3 sentences */}
+          {summarySentences.length > 3 && (
+            <div className="relative z-10">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setExpandedSummary(!expandedSummary)} 
+                className="mt-1 h-6 text-xs text-muted-foreground hover:text-primary flex items-center"
+              >
+                {expandedSummary ? (
+                  <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
+                ) : (
+                  <>Read more <ChevronDown className="ml-1 h-3 w-3" /></>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         {data.summary.policyAssessment && (
@@ -81,12 +124,12 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
           </div>
         )}
 
-        {data.summary.newsSearch && data.summary.newsSearch.length > 0 && (
-          <div>
+        {newsArticles.length > 0 && (
+          <div className="relative">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Related News Articles</h3>
             <div className="space-y-3">
-              {data.summary.newsSearch.map((article: NewsArticle, index: number) => (
-                <div key={index} className="bg-secondary/30 p-3 rounded-md">
+              {visibleNewsArticles.map((article: NewsArticle, idx: number) => (
+                <div key={idx} className="bg-secondary/30 p-3 rounded-md">
                   <h4 className="font-medium mb-1">{article.title}</h4>
                   <p className="text-sm mb-2">{article.content}</p>
                   <a 
@@ -100,9 +143,31 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
                 </div>
               ))}
             </div>
+            
+            {/* Show "Read more" button only if there are more than 2 news articles */}
+            {newsArticles.length > 1 && (
+              <div className="mt-3 text-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setExpandedNews(!expandedNews)}
+                  className="text-xs text-muted-foreground hover:text-primary flex items-center mx-auto"
+                >
+                  {expandedNews ? (
+                    <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
+                  ) : (
+                    <>Show all {newsArticles.length} news articles <ChevronDown className="ml-1 h-3 w-3" /></>
+                  )}
+                </Button>
+              </div>
+            )}
+            
+            {/* Gradient fade at the bottom when collapsed */}
+            {!expandedNews && newsArticles.length > 1 && (
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+            )}
           </div>
         )}
-
       </CardContent>
     </Card>
   );

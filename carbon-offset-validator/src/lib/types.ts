@@ -49,6 +49,7 @@ export interface LanduseTimeSeriesData {
   snow_and_ice: number;
   trees: number;
   water: number;
+  null: number;
 }
 
 /**
@@ -89,8 +90,8 @@ export interface Summary {
   summary: string;
   policy_analysis?: string; // JSON string from Supabase
   news?: string | NewsArticle[]; // JSON string or parsed array from Supabase
-  // policyAssessment?: PolicyAssessment; // Parsed policy_analysis for frontend
-  // newsSearch?: NewsArticle[]; // Parsed news for frontend
+  policyAssessment?: PolicyAssessment; // Parsed policy_analysis for frontend
+  newsSearch?: NewsArticle[]; // Parsed news for frontend
 }
 
 /**
@@ -119,12 +120,13 @@ export interface PolicyAssessment {
 export interface AIAnalysisResponse {
   projectData: Project;
   queryResponse: string;
+  overallSummary: OverallSummary[];
   summary: Summary;
   policyAssessment?: PolicyAssessment;
   newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
-  pieChartData: PieChartData[];
+  pieChartData?: PieChartData[];
   geospatialData: GeoData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
   documents: {
@@ -175,17 +177,31 @@ export interface GeoData extends Feature {
 }
 
 /**
+ * Overall analysis data interface
+ */
+export interface OverallSummary {
+  summary: string
+  recommendations: string
+  // Optionally, include id, project_id, created_at, updated_at if present in Supabase
+  id?: string
+  project_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+/**
  * Project data response interface
  */
 export interface ProjectDataResponse {
   project: Project;
   projects?: Project[];  // Optional array of projects for listing all projects
+  overallSummary: OverallSummary[];
   summary: Summary;
   policyAssessment?: PolicyAssessment;
   newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
-  pieChartData: PieChartData[];
+  pieChartData?: PieChartData[];
   geospatialData: GeoData[];
 }

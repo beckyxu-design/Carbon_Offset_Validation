@@ -114,6 +114,14 @@ async def get_project(project_code: str):
         if not project_details:
             print(f"No project found with code: {project_code}")
             raise HTTPException(status_code=404, detail=f"Project with code {project_code} not found")
+        
+        # Debug print to see if overallSummary is in the project_details
+        print(f"DEBUG - Project details keys: {project_details.keys()}")
+        if 'overallSummary' in project_details:
+            print(f"DEBUG - overallSummary exists with {len(project_details['overallSummary'])} items")
+        else:
+            print(f"DEBUG - overallSummary is missing from project_details")
+        
         print(f"Successfully fetched project details for {project_code}")
         return project_details
     except Exception as e:

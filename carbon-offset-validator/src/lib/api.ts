@@ -43,6 +43,7 @@ export const getProjectData = async (projectCode?: string): Promise<ApiResponse<
         data: {
           project: response.data[0], // Use the first project as the main project
           projects: response.data,   // Include all projects in the response
+          overallSummary: [],
           summary: {
             summary: '',
             policy_analysis: undefined,
@@ -59,11 +60,12 @@ export const getProjectData = async (projectCode?: string): Promise<ApiResponse<
     
     // Fetch a specific project data by project code
     const response = await axios.get<ProjectDataResponse>(
-      `${baseUrl}${endpoints.projectDetail(projectCode)}`
+      `${pythonBaseUrl}${endpoints.projectDetail(projectCode)}`
     );
     
     // Log the response for debugging
     console.log('Project data response:', response.data);
+    console.log('Project data overallSummary:', response.data.overallSummary);
     
     // Validate the response data structure with more flexibility
     const data = response.data;

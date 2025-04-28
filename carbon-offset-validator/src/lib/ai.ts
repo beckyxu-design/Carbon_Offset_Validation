@@ -1,4 +1,4 @@
-import { AIAnalysisRequest, AIAnalysisResponse, Document } from './types';
+import { AIAnalysisRequest, AIAnalysisResponse, Document, OverallSummary } from './types';
 import { getProjectData } from './api';
 
 // Get the base URL from environment variables, defaulting to localhost for development
@@ -62,15 +62,19 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
       shrub_and_scrub: d.shrub_and_scrub || 0,
       snow_and_ice: d.snow_and_ice || 0,
       trees: d.trees || 0,
-      water: d.water || 0
+      water: d.water || 0,
+      null: d.null || 0
     }));
-
-    console.log('landuseTimeSeriesData:', landuseTimeSeriesData)
+    // console.log('landuseTimeSeriesData:', landuseTimeSeriesData)
+    const overallSummary = projectData.overallSummary || []
+    
+    console.log('overallSummary:', overallSummary)
 
     // Structure the analysis response using actual data with robust property checking
     const response: AIAnalysisResponse = {
       projectData: projectData.project,
       queryResponse: '',
+      overallSummary,
       summary: {
         summary: projectData.summary && typeof projectData.summary === 'object' 
           ? (projectData.summary.summary || 'No analysis available.')
@@ -81,18 +85,18 @@ export const processQuery = async (request: AIAnalysisRequest): Promise<AIAnalys
         news: projectData.summary && typeof projectData.summary === 'object'
           ? projectData.summary.news
           : undefined,
-        // // Parse policy_analysis only if it exists and is valid
-        // policyAssessment: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.policy_analysis
-        //   ? (typeof projectData.summary.policy_analysis === 'string' 
-        //       ? JSON.parse(projectData.summary.policy_analysis) 
-        //       : projectData.summary.policy_analysis)
-        //   : undefined,
-        // // Parse news only if it exists and is valid
-        // newsSearch: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.news
-        //   ? (typeof projectData.summary.news === 'string' 
-        //       ? JSON.parse(projectData.summary.news) 
-        //       : projectData.summary.news)
-        //   : []
+        // Parse policy_analysis only if it exists and is valid
+        policyAssessment: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.policy_analysis
+          ? (typeof projectData.summary.policy_analysis === 'string' 
+              ? JSON.parse(projectData.summary.policy_analysis) 
+              : projectData.summary.policy_analysis)
+          : undefined,
+        // Parse news only if it exists and is valid
+        newsSearch: projectData.summary && typeof projectData.summary === 'object' && projectData.summary.news
+          ? (typeof projectData.summary.news === 'string' 
+              ? JSON.parse(projectData.summary.news) 
+              : projectData.summary.news)
+          : []
       },
       riskMetrics: (projectData.riskMetrics || []).map(metric => ({
         category: metric.category || 'Unknown',

@@ -16,20 +16,20 @@ const RiskMetrics: React.FC<RiskMetricsProps> = ({ riskFactors }) => {
   
   // Helper to get color based on risk score
   const getRiskColor = (score: number) => {
-    if (score < 30) return "text-green-500";
-    if (score < 60) return "text-amber-500";
+    if (score < 3) return "text-green-500";
+    if (score < 6) return "text-amber-500";
     return "text-red-500";
   };
   
   const getProgressColor = (score: number) => {
-    if (score < 30) return "bg-green-500";
-    if (score < 60) return "bg-amber-500";
+    if (score < 3) return "bg-green-500";
+    if (score < 6) return "bg-amber-500";
     return "bg-red-500";
   };
   
   const getRiskLevel = (score: number) => {
-    if (score < 30) return "Low Risk";
-    if (score < 60) return "Medium Risk";
+    if (score < 3) return "Low Risk";
+    if (score < 6) return "Medium Risk";
     return "High Risk";
   };
   

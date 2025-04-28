@@ -9,6 +9,9 @@ interface ProjectHeaderProps {
 }
 
 const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
+  // Debug log
+  console.log("ProjectHeader received project:", project);
+
   // Early return with loading state if project is undefined
   if (!project) {
     return (

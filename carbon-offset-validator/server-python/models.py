@@ -29,6 +29,10 @@ class Summary(BaseModel):
     overall_summary: str
     recommendations: List[Recommendation]
     additional_insights: Optional[str] = None
+    
+class OverallSummary(BaseModel):
+    summary: str
+    recommendations: str
 
 class TimeSeriesPoint(BaseModel):
     year: int
@@ -48,6 +52,7 @@ class ProjectAnalysisRequest(BaseModel):
 class ProjectAnalysisResponse(BaseModel):
     projectData: ProjectInfo
     queryResponse: str
+    overallSummary: List[OverallSummary]
     summary: Summary
     riskMetrics: List[RiskMetric]
     timeSeriesData: List[Dict[str, Any]]
