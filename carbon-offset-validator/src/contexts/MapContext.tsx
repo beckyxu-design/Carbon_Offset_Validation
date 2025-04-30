@@ -8,6 +8,7 @@ type MapContextType = {
   toggleDeforestationLayer: () => void;
   showForestLoss1Layer: boolean;
   toggleForestLoss1Layer: () => void;
+  fadeForestLoss1Layer: (fadeIn: boolean) => void;
   geospatialData: FeatureCollection | null;
   setGeospatialData: (data: FeatureCollection | null) => void;
   showPalmLayer: boolean;
@@ -31,6 +32,10 @@ export const MapProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowForestLoss1Layer(prev => !prev);
   };
 
+  const fadeForestLoss1Layer = (fadeIn: boolean) => {
+    setShowForestLoss1Layer(fadeIn);
+  };
+
   const togglePalmLayer = () => {
     setShowPalmLayer(prev => !prev);
   };
@@ -44,6 +49,7 @@ export const MapProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleDeforestationLayer,
         showForestLoss1Layer,
         toggleForestLoss1Layer,
+        fadeForestLoss1Layer,
         geospatialData,
         setGeospatialData,
         showPalmLayer,

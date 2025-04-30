@@ -53,7 +53,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center">
             <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-            Analysis Result
+            Analysis: Conflicts with National Policy
           </CardTitle>
           <Button
             variant="ghost"
@@ -113,13 +113,30 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         {data.summary.policyAssessment && (
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Policy Analysis</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {Object.entries(data.summary.policyAssessment).map(([key, value]) => (
-                <div key={key} className="bg-secondary/30 p-3 rounded-md">
-                  <h4 className="font-medium capitalize mb-1">{key.replace('_', ' ')}</h4>
-                  <p className="text-sm line-clamp-4">{value}</p>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 gap-3">
+              {Object.entries(data.summary.policyAssessment).map(([key, value]) => {
+                const [expanded, setExpanded] = useState(false);
+                return (
+                  <div key={key} className="bg-secondary/30 p-3 rounded-md">
+                    <h4 className="font-medium capitalize mb-1">{key.replace('_', ' ')}</h4>
+                    <p className={`text-sm ${expanded ? '' : 'line-clamp-3'}`}>{value}</p>
+                    {String(value).length > 150 && (
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="p-0 h-auto text-xs mt-1"
+                        onClick={() => setExpanded(!expanded)}
+                      >
+                        {expanded ? (
+                          <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
+                        ) : (
+                          <>Read more <ChevronDown className="ml-1 h-3 w-3" /></>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

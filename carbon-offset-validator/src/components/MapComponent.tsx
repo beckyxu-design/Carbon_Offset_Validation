@@ -350,7 +350,7 @@ const MapComponent: React.FC = () => {
 
   // Update deforestation layer visibility when toggle changes
   useEffect(() => {
-    if (!mapInitialized || !map.current || !deforestationLoaded) return;
+    if (!map.current || !mapInitialized) return;
     
     if (map.current.getLayer('deforestation-layer')) {
       map.current.setLayoutProperty(
@@ -358,42 +358,180 @@ const MapComponent: React.FC = () => {
         'visibility',
         showDeforestationLayer ? 'visible' : 'none'
       );
-      console.log(`Deforestation layer visibility set to: ${showDeforestationLayer ? 'visible' : 'none'}`);
     }
-  }, [mapInitialized, showDeforestationLayer, deforestationLoaded]);
+  }, [showDeforestationLayer, mapInitialized]);
 
-  // Update forest loss layer visibility when toggle changes
+  // Separate effect for Forest Loss 1 layer with animated fade transition
   useEffect(() => {
-    if (!mapInitialized || !map.current || !forestloss1Loaded || !forestloss2Loaded) return;
+    if (!map.current || !mapInitialized || !map.current.getLayer('forest-loss-1-layer')) return;
     
-    if (map.current.getLayer('forest-loss-1-layer')) {
-      map.current.setLayoutProperty(
-        'forest-loss-1-layer',
-        'visibility',
-        showForestLoss1Layer ? 'visible' : 'none'
-      );
-      map.current.setLayoutProperty(
-        'forest-loss-2-layer',
-        'visibility',
-        showForestLoss1Layer ? 'visible' : 'none'
-      );
-      console.log(`Forest loss layer visibility set to: ${showForestLoss1Layer ? 'visible' : 'none'}`);
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'forest-loss-1-layer',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showForestLoss1Layer ? 0.9 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showForestLoss1Layer ? 0 : 0.9;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('forest-loss-1-layer', 'raster-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
     }
-  }, [mapInitialized, showForestLoss1Layer, forestloss1Loaded]);
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'forest-loss-1-layer',
+          'raster-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showForestLoss1Layer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'forest-loss-1-layer',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showForestLoss1Layer, mapInitialized]);
 
-  // Update palm layer visibility when toggle changes
   useEffect(() => {
-    if (!mapInitialized || !map.current || !palmLoaded) return;
+    if (!map.current || !mapInitialized || !map.current.getLayer('forest-loss-2-layer')) return;
     
-    if (map.current.getLayer('palm-source-id')) {
-      map.current.setLayoutProperty(
-        'palm-source-id',
-        'visibility',
-        showPalmLayer ? 'visible' : 'none'
-      );
-      console.log(`Palm oil concession layer visibility set to: ${showPalmLayer ? 'visible' : 'none'}`);
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'forest-loss-2-layer',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showForestLoss1Layer ? 0.9 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showForestLoss1Layer ? 0 : 0.9;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('forest-loss-2-layer', 'raster-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
     }
-  }, [mapInitialized, showPalmLayer, palmLoaded]);
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'forest-loss-2-layer',
+          'raster-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showForestLoss1Layer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'forest-loss-2-layer',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showForestLoss1Layer, mapInitialized]);
+
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !map.current.getLayer('palm-source-id')) return;
+    
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'palm-source-id',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showPalmLayer ? 0.3 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showPalmLayer ? 0 : 0.3;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('palm-source-id', 'fill-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
+    }
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'palm-source-id',
+          'fill-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showPalmLayer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'palm-source-id',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showPalmLayer, mapInitialized]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">

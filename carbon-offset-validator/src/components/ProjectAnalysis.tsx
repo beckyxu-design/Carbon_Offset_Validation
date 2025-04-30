@@ -32,11 +32,6 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
       <ProjectHeader project={data.projectData} />
       <ProjectRiskAnalysis overallSummary={data.overallSummary} />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AIAnalysisCard data={data} />
-        <RiskSummaryTable metrics={data.riskMetrics} />
-      </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         {/* Debug log for timeSeriesData */}
         <DataVisualization 
@@ -45,6 +40,16 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
         />
         {/* <LandusePieChart data={data.pieChartData || []} /> */}
       </div>
+  
+      <AIAnalysisCard data={data} />
+      
+      <RiskSummaryTable metrics={data.riskMetrics} />
+  
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AIAnalysisCard data={data} />
+        <RiskSummaryTable metrics={data.riskMetrics} />
+      </div> */}
+      
       
       <div className="grid grid-cols-1 gap-6">
         {landuseData.length > 0 ? (

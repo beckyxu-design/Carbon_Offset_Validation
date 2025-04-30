@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RiskFactor } from "@/lib/types";
+import { RiskMetric } from "@/lib/types";
 import { AlertTriangle } from "lucide-react";
 
 interface RiskMetricsProps {
-  riskFactors: RiskFactor[];
+  riskFactors: RiskMetric[];
 }
 
 const RiskMetrics: React.FC<RiskMetricsProps> = ({ riskFactors }) => {
@@ -102,7 +101,7 @@ const RiskMetrics: React.FC<RiskMetricsProps> = ({ riskFactors }) => {
             {riskFactors.map((factor, index) => (
               <div key={index} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{factor.name}</span>
+                  <span className="text-sm font-medium">{factor.category}</span>
                   <span className={`text-sm font-medium ${getRiskColor(factor.score)}`}>
                     {factor.score}%
                   </span>

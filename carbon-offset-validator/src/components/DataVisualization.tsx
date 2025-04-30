@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimeSeriesData } from "@/lib/types";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
 import { TreeDeciduous, BarChart4 } from "lucide-react";
+import { useMap } from '@/contexts/MapContext';
 
 interface DataVisualizationProps {
   timeSeriesData: TimeSeriesData[];
@@ -15,13 +16,14 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
   // emissionsData
 }) => {
   const [activeTab, setActiveTab] = useState<string>("deforestation");
+  const { fadeForestLoss1Layer } = useMap();
   
   // --- Unit adjustment logic ---
   const getYAxisUnit = (data: TimeSeriesData[]) => {
     const max = Math.max(...data.map(d => d.deforestation_area || 0));
-    if (max >= 1_000_000) return { unit: 'millions', divisor: 1_000_000, label: 'Forest Loss (millions of square meters (m²))' };
-    if (max >= 1_000) return { unit: 'thousands', divisor: 1_000, label: 'Forest Loss (thousands of square meters (m²))' };
-    return { unit: 'square meters (m²)', divisor: 1, label: 'Forest Loss (square meters (m²))' };
+    if (max >= 1_000_000) return { unit: 'millions', divisor: 1_000_000, label: 'Forest Loss (millions m²)' };
+    if (max >= 1_000) return { unit: 'thousands', divisor: 1_000, label: 'Forest Loss (thousands m²)' };
+    return { unit: 'm²', divisor: 1, label: 'Forest Loss (m²)' };
   };
   const yAxisUnit = useMemo(() => getYAxisUnit(timeSeriesData), [timeSeriesData]);
   const transformedData = useMemo(() => {
@@ -79,7 +81,8 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
   const coloredData = useMemo(() => {
     return transformedData.map((d) => ({
       ...d,
-      barColor: yearToColor[d.timestamp] || '#3b82f6'
+      // barColor: yearToColor[d.timestamp] || '#3b82f6'
+      barColor: '#727272'
     }));
   }, [transformedData]);
 
@@ -89,7 +92,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-xl font-semibold flex items-center">
           <BarChart4 className="h-5 w-5 mr-2 text-primary" />
-          Data Trends
+          Forest Loss Data Time Series
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -113,7 +116,16 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="deforestation" className="space-y-4">
+          <TabsContent 
+            value="deforestation" 
+            className="space-y-4"
+            onMouseEnter={() => fadeForestLoss1Layer(true)}
+            onMouseLeave={() => fadeForestLoss1Layer(false)}
+          >
+            <div className="text-sm text-muted-foreground">
+              <p>View more data in the map!</p>
+            </div>
+
             <div className="h-80">
               {transformedData.length === 0 && (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -161,7 +173,21 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
             </div>
             
             <div className="text-sm text-muted-foreground">
-              <p>This chart shows the annual forest lost with 10km buffer around the project area over the past decades.</p>
+              <p>This chart shows the annual forest lost at 10m resolution with 10km buffer around the project area from 2001 to 2023.</p>
+              <p className="mt-2">The data is derived from satellite imagery analysis using the Global Forest Change dataset. Hover over the chart to highlight corresponding areas on the map, revealing forest loss patterns in relation to the project boundaries.</p>
+              <p className="mt-2">Forest loss is shown in square meters and is color-coded by year, with brighter colors representing more recent deforestation events.</p>
+            </div>
+
+            <div className="flex flex-wrap gap-1 mb-2">
+              {Object.entries(yearToColor).map(([year, color]) => 
+                  <div key={year} className="flex flex-col items-center mr-3 mb-2">
+                    <div 
+                      className="w-4 h-4 rounded-sm mb-1" 
+                      style={{ backgroundColor: color }}
+                    ></div>
+                    <span className="text-xs">{year}</span>
+                  </div>
+              )}
             </div>
           </TabsContent>
           
