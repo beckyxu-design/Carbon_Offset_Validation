@@ -53,7 +53,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center">
             <MessageSquare className="h-5 w-5 mr-2 text-primary" />
-            Analysis: Conflicts with National Policy
+            Analysis (LLM): Conflicts with National Policy
           </CardTitle>
           <Button
             variant="ghost"

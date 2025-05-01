@@ -47,7 +47,7 @@ const RiskSummaryTable: React.FC<RiskSummaryTableProps> = ({ metrics }) => {
           <div>
             <CardTitle className="text-xl font-semibold flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2 text-primary" />
-              Analysis: Project Design Risk Assessment
+              Analysis (LLM): Project Design Risk Assessment
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               The following analysis concludes from comparing the project design document with a list of (forestry) project design standard and guidelines from Verra, Gold Standards, ICVCM, etc.

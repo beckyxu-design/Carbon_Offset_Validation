@@ -92,7 +92,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-xl font-semibold flex items-center">
           <BarChart4 className="h-5 w-5 mr-2 text-primary" />
-          Forest Loss Data Time Series
+          Data Insight: Forest Loss (Yearly) 2001-2023
         </CardTitle>
       </CardHeader>
       <CardContent>
