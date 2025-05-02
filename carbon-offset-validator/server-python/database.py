@@ -172,7 +172,8 @@ async def get_project_forest_loss(project_code: str):
 
 # store projectbasicinfo to initialize a Project item in Project table
 async def store_analysis_results(project_code:str, project_data:Dict[str, Any]):
-    """Create a Project Parent in Supabase Projects table
+    """
+    Create a Project Parent in Supabase Projects table
 
     Args:
         project_code (str): project code 
@@ -181,6 +182,13 @@ async def store_analysis_results(project_code:str, project_data:Dict[str, Any]):
     Returns:
         project_id (str): project id 
     """
+    # Handle "Not specified" values for date fields
+    if 'start_date' in project_data and project_data['start_date'] == "Not specified":
+        project_data['start_date'] = None
+    
+    if 'end_date' in project_data and project_data['end_date'] == "Not specified":
+        project_data['end_date'] = None
+        
     projectrow = supabase.table("projects").select("*").eq("project_code", project_code).execute()
         
     if projectrow.data:
@@ -359,4 +367,3 @@ async def upload_overall_analysis(project_id: str, summary_all: str):
     except Exception as e:
         print(f"Error uploading overall analysis: {e}")
         return None
-    

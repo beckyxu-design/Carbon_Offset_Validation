@@ -16,6 +16,7 @@ import {
   ArrowRight, 
   FileQuestion
 } from "lucide-react";
+import LoadingState from "@/components/ui/LoadingState";
 
 interface UploadFormProps {
   onSubmit: (request: AIAnalysisRequest) => void;
@@ -32,7 +33,11 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const [country, setCountry] = useState<string>("Indonesia");
-
+  
+  // Loading state management
+  const [showLoadingState, setShowLoadingState] = useState<boolean>(false);
+  const [loadingStatus, setLoadingStatus] = useState<'uploading' | 'processing' | 'analyzing'>('uploading');
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -40,7 +45,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
         const { data, error } = await getProjectData();
         if (error) throw new Error(error);
         if (data && data.projects && Array.isArray(data.projects)) {
-          setAvailableProjects(data.projects.slice(0, 3).map((p: any) => p.project_code));
+          setAvailableProjects(data.projects.slice(0, 10).map((p: any) => p.project_code));
         }
       } catch (err) {
         console.error("Failed to fetch projects", err);
@@ -53,7 +58,24 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
     if (!e.target.files || e.target.files.length === 0) return;
     
     setUploading(true);
+    
+    // Show loading state for file upload
+    setShowLoadingState(true);
+    setLoadingStatus('uploading');
+    setLoadingProgress(0);
+    
     const file = e.target.files[0];
+    
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 300);
     
     try {
       // Determine file type
@@ -73,9 +95,19 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
       };
       
       setFiles(prev => [...prev, newFile]);
-      toast.success(`Uploaded ${file.name}`);
+      
+      // Complete the progress
+      clearInterval(progressInterval);
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setShowLoadingState(false);
+        toast.success(`Uploaded ${file.name}`);
+      }, 500);
+      
     } catch (error) {
       console.error("Error uploading file:", error);
+      clearInterval(progressInterval);
+      setShowLoadingState(false);
       toast.error("Failed to upload file");
     } finally {
       setUploading(false);
@@ -101,14 +133,52 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
       return;
     }
     
-    const request: AIAnalysisRequest = {
-      projectCode: projectCode.trim(),
-      query: query.trim(),
-      registry: registry,
-      files: files.length > 0 ? files : undefined
-    };
+    // Show loading state
+    setShowLoadingState(true);
+    setLoadingStatus('processing');
+    setLoadingProgress(0);
     
-    onSubmit(request);
+    // Simulate processing progress
+    const processingInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(processingInterval);
+          
+          // Move to analysis phase
+          setLoadingStatus('analyzing');
+          setLoadingProgress(0);
+          
+          // Simulate analysis progress
+          const analysisInterval = setInterval(() => {
+            setLoadingProgress(prev => {
+              if (prev >= 95) {
+                clearInterval(analysisInterval);
+                return 95;
+              }
+              return prev + 5;
+            });
+          }, 200);
+          
+          // Submit the request after some processing time
+          setTimeout(() => {
+            const request: AIAnalysisRequest = {
+              projectCode: projectCode.trim(),
+              query: query.trim(),
+              registry: registry,
+              files: files.length > 0 ? files : undefined
+            };
+            
+            onSubmit(request);
+            
+            // Keep the loading state visible until the parent component
+            // sets isLoading to false (which happens when the response is received)
+          }, 3000);
+          
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
   };
 
   const getFileIcon = (fileType: FileType) => {
@@ -124,195 +194,202 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto animate-fade-in">
-      {/* Country toggle */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium block mb-1">Country of the Project</label>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="country"
-              value="Indonesia"
-              checked={country === "Indonesia"}
-              onChange={() => setCountry("Indonesia")}
-              className="accent-green-600"
-            />
-            Indonesia
-          </label>
-          {/* Add more country options here in the future */}
-        </div>
-      </div>
+    <>
+      {showLoadingState || isLoading ? (
+        <LoadingState status={loadingStatus} progress={loadingProgress} />
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+          {/* Country toggle */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium block mb-1">Country of the Project</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="country"
+                  value="Indonesia"
+                  checked={country === "Indonesia"}
+                  onChange={() => setCountry("Indonesia")}
+                  className="accent-green-600"
+                />
+                Indonesia
+              </label>
+              {/* Add more country options here in the future */}
+            </div>
+          </div>
 
-      {/* Registry toggle */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium block mb-1">Carbon Offset Registry</label>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="registry"
-              value="Verra"
-              checked={registry === "Verra"}
-              onChange={() => setRegistry("Verra")}
-              className="accent-blue-600"
+          {/* Registry toggle */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium block mb-1">Carbon Offset Registry</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="registry"
+                  value="Verra"
+                  checked={registry === "Verra"}
+                  onChange={() => setRegistry("Verra")}
+                  className="accent-blue-600"
+                />
+                Verra
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="registry"
+                  value="Gold Standard"
+                  checked={registry === "Gold Standard"}
+                  onChange={() => setRegistry("Gold Standard")}
+                  className="accent-yellow-600"
+                />
+                Gold Standard
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="registry"
+                  value="American Carbon Registry"
+                  checked={registry === "American Carbon Registry"}
+                  onChange={() => setRegistry("American Carbon Registry")}
+                  className="accent-green-600"
+                />
+                American Carbon Registry
+              </label>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="projectCode" className="text-sm font-medium">
+              Project ID
+            </Label>
+            <Input
+              id="projectCode"
+              value={projectCode}
+              onChange={(e) => setProjectCode(e.target.value)}
+              placeholder="Enter project id (e.g., 3226)"
+              className="glass-input h-12"
+              required
             />
-            Verra
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="registry"
-              value="Gold Standard"
-              checked={registry === "Gold Standard"}
-              onChange={() => setRegistry("Gold Standard")}
-              className="accent-yellow-600"
-            />
-            Gold Standard
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="registry"
-              value="American Carbon Registry"
-              checked={registry === "American Carbon Registry"}
-              onChange={() => setRegistry("American Carbon Registry")}
-              className="accent-green-600"
-            />
-            American Carbon Registry
-          </label>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="projectCode" className="text-sm font-medium">
-          Project ID
-        </Label>
-        <Input
-          id="projectCode"
-          value={projectCode}
-          onChange={(e) => setProjectCode(e.target.value)}
-          placeholder="Enter project id (e.g., 3226)"
-          className="glass-input h-12"
-          required
-        />
-        {availableProjects.length > 0 && (
-          <div className="flex gap-2 mt-2">
-            <Label>List of Available Projects</Label>
-            {availableProjects.map((code) => (
+            {availableProjects.length > 0 && (
+              <div className="flex flex-col gap-2 mt-2">
+                <Label>List of Available Projects</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableProjects.map((code) => (
+                    <Button
+                      key={code}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setProjectCode(code)}
+                      className="text-xs px-2 py-1"
+                    >
+                      {code}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* <div className="space-y-2">
+            <Label className="text-sm font-medium">Project Documents</Label>
+            <div className="flex items-center gap-4">
               <Button
-                key={code}
                 type="button"
                 variant="outline"
-                size="sm"
-                onClick={() => setProjectCode(code)}
-                className="text-xs px-2 py-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="border-dashed border-2 h-12 flex-1 bg-white/50 backdrop-blur-sm transition-all hover:border-primary hover:bg-white/60 text-muted-foreground hover:text-foreground"
               >
-                {code}
+                {uploading ? (
+                  <span className="flex items-center">
+                    <Upload className="h-4 w-4 mr-2 animate-pulse" />
+                    Uploading...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload PDD/KML/Shapefile
+                  </span>
+                )}
               </Button>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* File upload */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Project Documents</Label>
-        <div className="flex items-center gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="border-dashed border-2 h-12 flex-1 bg-white/50 backdrop-blur-sm transition-all hover:border-primary hover:bg-white/60 text-muted-foreground hover:text-foreground"
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".pdf,.kml,.shp,.zip"
+              />
+            </div>
+            
+            {/* Uploaded files */}
+            {/* {files.length > 0 && (
+              <Card className="mt-4 overflow-hidden bg-white/50 backdrop-blur-sm border border-white/30">
+                <CardContent className="p-3">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Uploaded Files</div>
+                  <div className="space-y-2">
+                    {files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-white/70 rounded-md text-sm">
+                        <div className="flex items-center gap-2">
+                          {getFileIcon(file.type)}
+                          <span className="font-medium truncate max-w-[200px]">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({(file.size / 1024).toFixed(0)} KB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div> */}
+          
+          {/* Query input
+          <div className="space-y-2">
+            <Label htmlFor="query" className="text-sm font-medium">
+              Your Question
+            </Label>
+            <Textarea
+              id="query"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="What would you like to know? (e.g., What are the main drivers of deforestation here?)"
+              className="glass-input min-h-[120px]"
+              required
+            />
+          </div> */}
+          
+          {/* Submit button */}
+          <Button 
+            type="submit" 
+            className="w-full btn-primary h-12 group"
+            disabled={isLoading || uploading}
           >
-            {uploading ? (
+            {isLoading ? (
               <span className="flex items-center">
-                <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                Uploading...
+                <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
+                Analyzing...
               </span>
             ) : (
               <span className="flex items-center">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload PDD/KML/Shapefile
+                Analyze Project
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </span>
             )}
           </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept=".pdf,.kml,.shp,.zip"
-          />
-        </div>
-        
-        {/* Uploaded files */}
-        {/* {files.length > 0 && (
-          <Card className="mt-4 overflow-hidden bg-white/50 backdrop-blur-sm border border-white/30">
-            <CardContent className="p-3">
-              <div className="text-xs font-medium text-muted-foreground mb-2">Uploaded Files</div>
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-white/70 rounded-md text-sm">
-                    <div className="flex items-center gap-2">
-                      {getFileIcon(file.type)}
-                      <span className="font-medium truncate max-w-[200px]">{file.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({(file.size / 1024).toFixed(0)} KB)
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )} */}
-      </div>
-      
-      {/* Query input
-      <div className="space-y-2">
-        <Label htmlFor="query" className="text-sm font-medium">
-          Your Question
-        </Label>
-        <Textarea
-          id="query"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="What would you like to know? (e.g., What are the main drivers of deforestation here?)"
-          className="glass-input min-h-[120px]"
-          required
-        />
-      </div> */}
-      
-      {/* Submit button */}
-      <Button 
-        type="submit" 
-        className="w-full btn-primary h-12 group"
-        disabled={isLoading || uploading}
-      >
-        {isLoading ? (
-          <span className="flex items-center">
-            <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mr-2"></div>
-            Analyzing...
-          </span>
-        ) : (
-          <span className="flex items-center">
-            Analyze Project
-            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </span>
-        )}
-      </Button>
-    </form>
+        </form>
+      )}
+    </>
   );
 };
 
