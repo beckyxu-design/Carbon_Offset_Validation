@@ -31,6 +31,8 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [country, setCountry] = useState<string>("Indonesia");
+
 
   useEffect(() => {
     async function fetchProjects() {
@@ -123,9 +125,28 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto animate-fade-in">
+      {/* Country toggle */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium block mb-1">Country of the Project</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-1">
+            <input
+              type="radio"
+              name="country"
+              value="Indonesia"
+              checked={country === "Indonesia"}
+              onChange={() => setCountry("Indonesia")}
+              className="accent-green-600"
+            />
+            Indonesia
+          </label>
+          {/* Add more country options here in the future */}
+        </div>
+      </div>
+
       {/* Registry toggle */}
       <div className="space-y-2">
-        <label className="text-sm font-medium block mb-1">Registry</label>
+        <label className="text-sm font-medium block mb-1">Carbon Offset Registry</label>
         <div className="flex gap-4">
           <label className="flex items-center gap-1">
             <input
@@ -165,18 +186,19 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
       
       <div className="space-y-2">
         <Label htmlFor="projectCode" className="text-sm font-medium">
-          Project Code
+          Project ID
         </Label>
         <Input
           id="projectCode"
           value={projectCode}
           onChange={(e) => setProjectCode(e.target.value)}
-          placeholder="Enter project code (e.g., 3226)"
+          placeholder="Enter project id (e.g., 3226)"
           className="glass-input h-12"
           required
         />
         {availableProjects.length > 0 && (
           <div className="flex gap-2 mt-2">
+            <Label>List of Available Projects</Label>
             {availableProjects.map((code) => (
               <Button
                 key={code}
@@ -226,7 +248,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
         </div>
         
         {/* Uploaded files */}
-        {files.length > 0 && (
+        {/* {files.length > 0 && (
           <Card className="mt-4 overflow-hidden bg-white/50 backdrop-blur-sm border border-white/30">
             <CardContent className="p-3">
               <div className="text-xs font-medium text-muted-foreground mb-2">Uploaded Files</div>
@@ -254,7 +276,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ onSubmit, isLoading = false }) 
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
       
       {/* Query input

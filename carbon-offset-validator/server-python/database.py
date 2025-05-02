@@ -9,6 +9,7 @@ import os
 from supabase import create_client, Client
 from typing import Dict, List, Any
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -169,12 +170,32 @@ async def get_project_forest_loss(project_code: str):
         # "landuseTimeSeriesData": landuse_time_series_response.data,
     }
 
-async def store_analysis_results(project_data):
-    
-    # Insert project
-    project_response = supabase.table("projects").insert(project_data).execute()
-    project_id = project_response.data[0]["id"]
+# store projectbasicinfo to initialize a Project item in Project table
+async def store_analysis_results(project_code:str, project_data:Dict[str, Any]):
+    """Create a Project Parent in Supabase Projects table
 
+    Args:
+        project_code (str): project code 
+        project_data (Dict[str, Any]): dictionary 
+
+    Returns:
+        project_id (str): project id 
+    """
+    projectrow = supabase.table("projects").select("*").eq("project_code", project_code).execute()
+        
+    if projectrow.data:
+        # Update existing project
+        response = supabase.table("projects").update(project_data).eq("project_code", project_code).execute()
+        project_id = response.data[0]["id"]
+        print(f"Update response status: {response.status_code if hasattr(response, 'status_code') else 'N/A'}")
+        print(f"Updated Project basic info table for project with code: {project_code}")
+    else:
+        # Insert project
+        response = supabase.table("projects").insert(project_data).execute()
+        project_id = response.data[0]["id"]
+        print(f"Insert response status: {response.status_code if hasattr(project_response, 'status_code') else 'N/A'}")
+        print(f"Create new Project basic info table for project with code: {project_code}")
+            
     return project_id
     
 async def update_vcm_analy_summary(project_code: str, risk_metrics: list, project_id = None):

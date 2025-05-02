@@ -41,7 +41,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   const visibleSentences = expandedSummary ? summarySentences : summarySentences.slice(0, 3);
   
   // Get visible news articles (first 2 when collapsed, all when expanded)
-  const newsArticles = data.summary.newsSearch || [];
+  const newsArticles = Array.isArray(data.summary.newsSearch) ? data.summary.newsSearch : [];
   const visibleNewsArticles = expandedNews 
     ? newsArticles 
     : newsArticles.slice(0, 1);
