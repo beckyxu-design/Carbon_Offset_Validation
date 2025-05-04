@@ -34,7 +34,7 @@ const LoadingState: React.FC<LoadingStateProps> = ({ status, progress }) => {
         <div className="absolute inset-0 rounded-full border-4 border-gray-100"></div>
         <div 
           className="absolute inset-0 rounded-full border-4 border-transparent border-t-accent animate-spin"
-          style={{ animationDuration: '1.5s' }}
+          style={{ animationDuration: '1.0s' }}
         ></div>
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="text-lg font-semibold text-gray-800">{progress}%</span>

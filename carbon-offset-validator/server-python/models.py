@@ -12,8 +12,13 @@ class ProjectInfo(BaseModel):
     startDate: str
     endDate: str
     methodology: Optional[str] = None
-    size: Optional[str] = None
-
+    total_credits: Optional[int] = None
+    remaining_credits: Optional[int] = None
+    type: Optional[str] = None
+    reduction_removal: Optional[str] = None
+    project_developer: Optional[str] = None
+    buffer: Optional[int] = None
+    
 class RiskMetric(BaseModel):
     category: str
     score: int

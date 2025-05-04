@@ -2,7 +2,8 @@ import React from "react";
 import { Project } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Info, Tag, FileText } from "lucide-react";
+import { MapPin, Calendar, Clock, Info, Tag, FileText, PersonStanding, SquareUserRound, Radius, Hash } from "lucide-react";
+
 
 interface ProjectHeaderProps {
   project: Project;
@@ -24,17 +25,6 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
       </div>
     );
   }
-
-  // Format coordinates safely
-  const formatCoordinates = (coords: [number, number] | undefined) => {
-    if (!coords || !Array.isArray(coords) || coords.length !== 2) return null;
-    try {
-      return `${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`;
-    } catch (error) {
-      console.error('Error formatting coordinates:', error);
-      return null;
-    }
-  };
 
   // Format date safely
   const formatDate = (dateStr: string | undefined) => {
@@ -69,9 +59,7 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
 
   const startDate = formatDate(project.start_date);
   const endDate = formatDate(project.end_date);
-  const coordinates = formatCoordinates(project.coordinates);
-  const createdAt = formatTimestamp(project.created_at);
-  const updatedAt = formatTimestamp(project.updated_at);
+  const testdata = 3000
 
   return (
     <div className="animate-fade-in">
@@ -92,46 +80,104 @@ const ProjectHeader: React.FC<ProjectHeaderProps> = ({ project }) => {
 
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {project.location && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{project.location}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 content-start items-start">
+
+            {project.methodology && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <FileText className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Methodology</span>: {project.methodology}</span>
               </div>
             )}
             
-            {coordinates && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Coordinates: {coordinates}</span>
+            {project.location && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <MapPin className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Location</span>: {project.location}</span>
               </div>
             )}
 
-            {startDate && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Crediting Start: {startDate}</span>
+            {project.type && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Tag className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Type</span>: {project.type}</span>
               </div>
             )}
 
-            {endDate && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Crediting End: {endDate}</span>
+            {project.reduction_removal && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Tag className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Reduction/Removal</span>: {project.reduction_removal}</span>
               </div>
             )}
 
-            {project.methodology && (
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Methodology: {project.methodology}</span>
+            {project.project_developer && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <SquareUserRound className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Project Developer</span>: {project.project_developer}</span>
               </div>
             )}
 
             {project.size && (
-              <div className="flex items-center gap-2">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Size: {project.size}</span>
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Radius className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Size</span>: {project.size}</span>
+              </div>
+            )}
+
+            {startDate && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Calendar className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Crediting Start</span>: {startDate}</span>
+              </div>
+            )}
+
+            {endDate && (
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Calendar className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Crediting End</span>: {endDate}</span>
+              </div>
+            )}
+
+            {(
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Hash className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Total Credits</span>: {project.total_credits}</span>
+              </div>
+            )}
+
+            {(
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Hash className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Remaining Credits</span>: {project.remaining_credits}</span>
+              </div>
+            )}
+
+            {(
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0">
+                  <Hash className="h-[14px] w-[14px] text-muted-foreground mt-[2px]" />
+                </div>
+                <span className="text-sm"><span className="font-semibold">Buffer Pool</span>: {project.buffer}</span>
               </div>
             )}
           </div>

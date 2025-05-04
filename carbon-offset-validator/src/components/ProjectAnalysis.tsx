@@ -7,6 +7,7 @@ import DataVisualization from "./DataVisualization";
 import LanduseTimeSeriesChart from "./LanduseTimeSeriesChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ProjectRiskAnalysis from "./ProjectRiskAnalysis";
+import Recommendations from "./Recommendations";
 
 // define a typescript interface with input data prop type AIAnalysisResponse(structured data format)
 interface ProjectAnalysisProps {
@@ -60,6 +61,11 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
           </Alert>
         )}
       </div>
+      
+      {/* Add Recommendations component after Land Use Change section */}
+      {data.overallSummary && data.overallSummary.length > 0 && data.overallSummary[0].recommendations && (
+        <Recommendations recommendations={data.overallSummary[0].recommendations} />
+      )}
     </div>
   );
 };

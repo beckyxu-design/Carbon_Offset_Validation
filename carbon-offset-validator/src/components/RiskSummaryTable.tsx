@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertTriangle, ChevronDown, ChevronRight, HelpCircle } from 'lucide-react';
 import { RiskMetric } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface RiskSummaryTableProps {
   metrics: RiskMetric[];
@@ -49,11 +50,11 @@ const RiskSummaryTable: React.FC<RiskSummaryTableProps> = ({ metrics }) => {
               <AlertTriangle className="h-5 w-5 mr-2 text-primary" />
               Analysis (LLM): Project Design Risk Assessment
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1 mb-6">
               The following analysis concludes from comparing the project design document with a list of (forestry) project design standard and guidelines from Verra, Gold Standards, ICVCM, etc.
               Risk score ranges from 0 (lowest risk) to 10 (highest risk).
             </p>
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center mb-6">
               <div className="relative h-24 w-24">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
                   {/* Background circle */}
@@ -191,11 +192,13 @@ const RiskSummaryTable: React.FC<RiskSummaryTableProps> = ({ metrics }) => {
                     onClick={() => toggleRow(index)}
                   >
                     <TableCell className="p-2 w-10">
-                      {isExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-primary" />
-                      ) : (
+                      <motion.div
+                        initial={false}
+                        animate={{ rotate: isExpanded ? 90 : 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                      >
                         <ChevronRight className="h-4 w-4 text-primary" />
-                      )}
+                      </motion.div>
                     </TableCell>
                     <TableCell className="font-medium">{metric.category}</TableCell>
                     <TableCell>
@@ -206,16 +209,26 @@ const RiskSummaryTable: React.FC<RiskSummaryTableProps> = ({ metrics }) => {
                     <TableCell className="hidden md:table-cell">{metric.impact}</TableCell>
                     <TableCell className="hidden md:table-cell">{metric.likelihood}</TableCell>
                   </TableRow>
-                  {isExpanded && (
-                    <TableRow>
-                      <TableCell className="p-0"></TableCell>
-                      <TableCell colSpan={4} className="p-4 bg-muted/30">
-                        <div className="text-sm text-muted-foreground max-h-80 overflow-y-auto pr-2">
-                          {metric.description}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <TableRow>
+                        <TableCell className="p-0"></TableCell>
+                        <TableCell colSpan={4} className="p-0 bg-muted/30">
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="text-sm text-muted-foreground p-4 max-h-80 overflow-y-auto pr-6">
+                              {metric.description}
+                            </div>
+                          </motion.div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </AnimatePresence>
                 </React.Fragment>
               );
             })}

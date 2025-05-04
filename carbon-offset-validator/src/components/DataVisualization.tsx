@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TimeSeriesData } from "@/lib/types";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
+import { TimeSeriesData, Project } from "@/lib/types";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, ReferenceLine } from "recharts";
 import { TreeDeciduous, BarChart4 } from "lucide-react";
 import { useMap } from '@/contexts/MapContext';
 
 interface DataVisualizationProps {
   timeSeriesData: TimeSeriesData[];
+  project?: Project;
   // emissionsData: EmissionsData[];
 }
 
 const DataVisualization: React.FC<DataVisualizationProps> = ({
   timeSeriesData,
+  project,
   // emissionsData
 }) => {
   const [activeTab, setActiveTab] = useState<string>("deforestation");
@@ -32,6 +34,19 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
       deforestation_area_display: d.deforestation_area / yAxisUnit.divisor
     }));
   }, [timeSeriesData, yAxisUnit]);
+
+  // Extract project start year for reference line
+  const projectStartYear = useMemo(() => {
+    if (project?.start_date) {
+      try {
+        return new Date(project.start_date).getFullYear().toString();
+      } catch (error) {
+        console.error('Error parsing project start date:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [project]);
 
   useEffect(() => {
     if (timeSeriesData && timeSeriesData.length > 0) {
@@ -107,13 +122,13 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
               <TreeDeciduous className="h-4 w-4 mr-2" />
               Forest Loss
             </TabsTrigger>
-            <TabsTrigger value="emissions">
+            {/* <TabsTrigger value="emissions">
               <svg className="h-4 w-4 mr-2 inline" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 16C8.7 16 6 13.3 6 10H4C4 14.4 7.6 18 12 18C16.4 18 20 14.4 20 10H18C18 13.3 15.3 16 12 16Z" fill="currentColor"/>
                 <path d="M12 4C14.2 4 16 5.8 16 8H18C18 4.7 15.3 2 12 2C8.7 2 6 4.7 6 8H8C8 5.8 9.8 4 12 4Z" fill="currentColor"/>
               </svg>
               Emissions
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
           
           <TabsContent 
@@ -157,6 +172,23 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
                       />
                       <Tooltip content={<CustomTooltip dataType="deforestation" unit={yAxisUnit.unit} divisor={yAxisUnit.divisor} />} />
                       <Legend verticalAlign="top" height={36} />
+                      
+                      {/* Project start date reference line */}
+                      {projectStartYear && (
+                        <ReferenceLine 
+                          x={projectStartYear} 
+                          stroke="#0ea5e9" 
+                          strokeWidth={2} 
+                          strokeDasharray="5 5"
+                          label={{ 
+                            value: 'Project Start', 
+                            position: 'top', 
+                            fill: '#0ea5e9',
+                            fontSize: 12
+                          }}
+                        />
+                      )}
+                      
                       <Bar
                         dataKey="deforestation_area_display"
                         name={yAxisUnit.label}
@@ -176,6 +208,9 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
               <p>This chart shows the annual forest lost at 10m resolution with 10km buffer around the project area from 2001 to 2023.</p>
               <p className="mt-2">The data is derived from satellite imagery analysis using the Global Forest Change dataset. Hover over the chart to highlight corresponding areas on the map, revealing forest loss patterns in relation to the project boundaries.</p>
               <p className="mt-2">Forest loss is shown in square meters and is color-coded by year, with brighter colors representing more recent deforestation events.</p>
+              {projectStartYear && (
+                <p className="mt-2 text-sky-600 font-medium">The vertical dashed line marks the project's crediting start date ({projectStartYear}).</p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-1 mb-2">
@@ -191,7 +226,8 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
             </div>
           </TabsContent>
           
-          <TabsContent value="emissions" className="space-y-4">
+          {/* if another plot! */}
+          {/* <TabsContent value="emissions" className="space-y-4">
             <div className="h-80">
               {transformedData.length === 0 && (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -241,7 +277,8 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
             <div className="text-sm text-muted-foreground">
               <p>This chart shows the forest loss trend over time within a 10km buffer around the project area.</p>
             </div>
-          </TabsContent>
+          </TabsContent> */}
+
         </Tabs>
       </CardContent>
     </Card>

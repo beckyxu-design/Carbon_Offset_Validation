@@ -92,9 +92,9 @@ const Index = () => {
                   </div>
                 </div>
               </div>
-              <h1 className="text-4xl font-bold tracking-tight mb-3">Carbon Project Analysis</h1>
+              <h1 className="text-4xl font-bold tracking-tight mb-3">Carbon Offset Project Analysis</h1>
               <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                Analyze carbon projects with AI-powered insights. Input a project ID, upload documents, 
+                Analyze forestry carbon offset projects with AI-powered insights. Input a project code
                 and get detailed analysis on risks, trends, and recommendations.
               </p>
             </div>

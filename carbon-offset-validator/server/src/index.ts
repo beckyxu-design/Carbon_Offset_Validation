@@ -263,11 +263,6 @@ app.get('/api/projects/:code', async (req, res) => {
     if (landuseTimeSeriesData && landuseTimeSeriesData.length > 0) {
       // console.log('First record:', landuseTimeSeriesData[0]);
     }
-    
-    if (landuseTimeSeriesError) {
-      console.error('Error fetching landuse time series data:', landuseTimeSeriesError);
-      // Don't throw here, just log the error and continue
-    }
 
     const response = {
       project: projectData,

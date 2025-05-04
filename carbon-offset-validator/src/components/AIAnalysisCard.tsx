@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AIAnalysisResponse, NewsArticle } from "@/lib/types";
-import { Copy, Check, MessageSquare, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, Check, MessageSquare, ExternalLink, ChevronDown, ChevronUp, ScanLine } from "lucide-react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 
 // This interface defines the props for the AIAnalysisCard component.
 // It ensures that the component receives the correct data structure,
@@ -18,6 +19,50 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   const [copied, setCopied] = useState<boolean>(false);
   const [expandedSummary, setExpandedSummary] = useState<boolean>(false);
   const [expandedNews, setExpandedNews] = useState<boolean>(false);
+  
+  // Function to format policy text by parsing markdown-style formatting
+  const formatPolicyText = (text: string) => {
+    // Check if the text contains bullet points with asterisks
+    if (text.includes('* **') || text.includes('**')) {
+      // Split the text by bullet points
+      const parts = text.split(/\*\s+\*\*/);
+      
+      if (parts.length > 1) {
+        // First part is the introduction (if any)
+        const intro = parts[0].trim();
+        
+        // Process the bullet points
+        const bulletPoints = parts.slice(1).map(part => {
+          // Extract the title and content
+          const titleMatch = part.match(/([^:*]+):\*\*\s*(.*)/);
+          if (titleMatch) {
+            return {
+              title: titleMatch[1].trim(),
+              content: titleMatch[2].trim()
+            };
+          }
+          return { title: '', content: part.trim() };
+        }).filter(item => item.title || item.content);
+        
+        return (
+          <>
+            {intro && <p className="text-sm mb-3">{intro}</p>}
+            <div className="space-y-3">
+              {bulletPoints.map((item, index) => (
+                <div key={index} className="bg-secondary/30 p-3 rounded-md">
+                  {item.title && <h4 className="font-medium text-sm mb-1">{item.title}</h4>}
+                  <p className="text-sm text-muted-foreground">{item.content}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        );
+      }
+    }
+    
+    // If no bullet points or parsing fails, return the original text
+    return <p className="text-sm">{text}</p>;
+  };
   
   const copyToClipboard = () => {
     const text = `
@@ -52,7 +97,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center">
-            <MessageSquare className="h-5 w-5 mr-2 text-primary" />
+            <ScanLine className="h-5 w-5 mr-2 text-primary" />
             Analysis (LLM): Conflicts with National Policy
           </CardTitle>
           <Button
@@ -78,13 +123,18 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
       <CardContent className="space-y-6">
         <div className="relative">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Analysis Summary</h3>
-          <div className="text-base leading-relaxed">
+          <motion.div 
+            className="text-base leading-relaxed"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             {visibleSentences.map((sentence, idx) => (
               <span key={idx}>
                 {sentence}{' '}
               </span>
             ))}
-          </div>
+          </motion.div>
           
           {/* Gradient fade for truncated text */}
           {!expandedSummary && summarySentences.length > 3 && (
@@ -100,11 +150,31 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
                 onClick={() => setExpandedSummary(!expandedSummary)} 
                 className="mt-1 h-6 text-xs text-muted-foreground hover:text-primary flex items-center"
               >
-                {expandedSummary ? (
-                  <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
-                ) : (
-                  <>Read more <ChevronDown className="ml-1 h-3 w-3" /></>
-                )}
+                <AnimatePresence mode="wait" initial={false}>
+                  {expandedSummary ? (
+                    <motion.div 
+                      key="less"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center"
+                    >
+                      Show less <ChevronUp className="ml-1 h-3 w-3" />
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="more"
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center"
+                    >
+                      Read more <ChevronDown className="ml-1 h-3 w-3" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </Button>
             </div>
           )}
@@ -116,23 +186,70 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
             <div className="grid grid-cols-1 gap-3">
               {Object.entries(data.summary.policyAssessment).map(([key, value]) => {
                 const [expanded, setExpanded] = useState(false);
+                const valueStr = String(value);
+                
                 return (
                   <div key={key} className="bg-secondary/30 p-3 rounded-md">
-                    <h4 className="font-medium capitalize mb-1">{key.replace('_', ' ')}</h4>
-                    <p className={`text-sm ${expanded ? '' : 'line-clamp-3'}`}>{value}</p>
-                    {String(value).length > 150 && (
-                      <Button 
-                        variant="link" 
-                        size="sm" 
-                        className="p-0 h-auto text-xs mt-1"
-                        onClick={() => setExpanded(!expanded)}
-                      >
-                        {expanded ? (
-                          <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
-                        ) : (
-                          <>Read more <ChevronDown className="ml-1 h-3 w-3" /></>
-                        )}
-                      </Button>
+                    <h4 className="font-medium capitalize mb-1">{key.replace(/_/g, ' ')}</h4>
+                    
+                    {/* If text is too long, apply expand/collapse behavior */}
+                    {valueStr.length > 150 ? (
+                      <>
+                        <motion.div 
+                          animate={{ 
+                            height: expanded ? "auto" : "6rem",
+                            opacity: 1 
+                          }}
+                          initial={false}
+                          transition={{ 
+                            height: { duration: 0.3, ease: "easeInOut" },
+                            opacity: { duration: 0.2 }
+                          }}
+                          className="relative overflow-hidden"
+                        >
+                          {formatPolicyText(valueStr)}
+                          
+                          {/* Gradient fade for truncated text */}
+                          {!expanded && (
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/90 to-transparent pointer-events-none"></div>
+                          )}
+                        </motion.div>
+                        
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="p-0 h-auto text-xs mt-1"
+                          onClick={() => setExpanded(!expanded)}
+                        >
+                          <AnimatePresence mode="wait" initial={false}>
+                            {expanded ? (
+                              <motion.div 
+                                key="less"
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex items-center"
+                              >
+                                Show less <ChevronUp className="ml-1 h-3 w-3" />
+                              </motion.div>
+                            ) : (
+                              <motion.div 
+                                key="more"
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 5 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex items-center"
+                              >
+                                Read more <ChevronDown className="ml-1 h-3 w-3" />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </Button>
+                      </>
+                    ) : (
+                      formatPolicyText(valueStr)
                     )}
                   </div>
                 );
@@ -170,11 +287,31 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
                   onClick={() => setExpandedNews(!expandedNews)}
                   className="text-xs text-muted-foreground hover:text-primary flex items-center mx-auto"
                 >
-                  {expandedNews ? (
-                    <>Show less <ChevronUp className="ml-1 h-3 w-3" /></>
-                  ) : (
-                    <>Show all {newsArticles.length} news articles <ChevronDown className="ml-1 h-3 w-3" /></>
-                  )}
+                  <AnimatePresence mode="wait" initial={false}>
+                    {expandedNews ? (
+                      <motion.div 
+                        key="less"
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center"
+                      >
+                        Show less <ChevronUp className="ml-1 h-3 w-3" />
+                      </motion.div>
+                    ) : (
+                      <motion.div 
+                        key="more"
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex items-center"
+                      >
+                        Show all {newsArticles.length} news articles <ChevronDown className="ml-1 h-3 w-3" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </Button>
               </div>
             )}

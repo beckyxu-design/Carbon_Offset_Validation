@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   AreaChart, 
@@ -13,7 +13,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { BarChartIcon, PieChartIcon } from 'lucide-react';
+import { BarChartIcon, ChartAreaIcon, PieChartIcon } from 'lucide-react';
 import { TooltipProps } from 'recharts';
 
 interface LanduseTimeSeriesData {
@@ -74,6 +74,40 @@ function hexToRgba(hex: string, alpha: number) {
 }
 
 const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data }) => {
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  
+  // Set up Intersection Observer to detect when chart is visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the chart becomes visible, set isVisible to true
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          // Once we've seen it, no need to keep observing
+          if (chartRef.current) {
+            observer.unobserve(chartRef.current);
+          }
+        }
+      },
+      {
+        // Start rendering slightly before it comes into view
+        rootMargin: '200px 0px',
+        threshold: 0.1 // Trigger when at least 10% of the element is visible
+      }
+    );
+
+    if (chartRef.current) {
+      observer.observe(chartRef.current);
+    }
+
+    return () => {
+      if (chartRef.current) {
+        observer.unobserve(chartRef.current);
+      }
+    };
+  }, []);
+  
   // --- Unit adjustment logic ---
   const getYAxisUnit = (data: LanduseTimeSeriesData[]) => {
     // Find the max value across all land use types
@@ -130,98 +164,127 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
       { name: 'Shrub and Scrub', value: entry.shrub_and_scrub, color: COLORS.shrub_and_scrub },
       { name: 'Snow and Ice', value: entry.snow_and_ice, color: COLORS.snow_and_ice },
       { name: 'Forest', value: entry.trees, color: COLORS.trees },
-      // { name: 'Water', value: entry.water, color: COLORS.water }
-    ].filter(item => item.value > 0);
+      { name: 'Water', value: entry.water, color: COLORS.water }
+    ].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
   }, [hoveredMonth, rawDataByMonth, data]);
 
-  // AreaChart mouse move handler
-  const handleAreaChartMouseMove = (state: any) => {
-    if (state && state.activeLabel) {
-      setHoveredMonth(state.activeLabel);
+  // Calculate total area for percentage calculation
+  const totalArea = useMemo(() => {
+    return pieChartData.reduce((sum, item) => sum + item.value, 0);
+  }, [pieChartData]);
+
+  // Custom tooltip for area chart
+  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+    if (active && payload && payload.length) {
+      // Set the hovered month for the pie chart
+      if (label && label !== hoveredMonth) {
+        setHoveredMonth(label);
+      }
+
+      // Create a reversed copy of the payload array
+      const reversedPayload = [...payload].reverse();
+
+      return (
+        <div className="bg-white p-3 rounded-md shadow-lg border border-border">
+          <p className="text-sm font-medium">{label}</p>
+          <div className="space-y-1 mt-1">
+            {reversedPayload.map((entry, index) => {
+              if (entry.value === 0) return null;
+              const dataKey = entry.dataKey as string;
+              const label = FEATURE_LABELS[dataKey] || dataKey;
+              return (
+                <div key={`item-${index}`} className="flex items-center text-xs">
+                  <div 
+                    className="w-3 h-3 mr-2 flex-shrink-0" 
+                    style={{ backgroundColor: entry.color as string }}
+                  ></div>
+                  <span className="truncate">{label}:</span>
+                  <span className="ml-1 font-medium">
+                    {entry.value.toLocaleString()} {yAxisUnit.unit}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
     }
+    return null;
   };
-  const handleAreaChartMouseLeave = () => {
-    setHoveredMonth(null);
+
+  // Custom tooltip for pie chart
+  const PieTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const percentage = ((data.value / totalArea) * 100).toFixed(1);
+      return (
+        <div className="bg-white p-3 rounded-md shadow-lg border border-border">
+          <p className="text-sm font-medium">{data.name}</p>
+          <p className="text-xs">
+            <span className="font-medium">{data.value.toLocaleString()}</span> m²
+            <span className="ml-2">({percentage}%)</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
-    <Card className="glass-card overflow-hidden animate-fade-in h-auto">
+    <Card className="glass-card overflow-hidden animate-fade-in" ref={chartRef}>
       <div className="bg-gradient-to-r from-primary/20 to-primary/5 h-2"></div>
       <CardHeader className="pb-2">
         <CardTitle className="text-xl font-semibold flex items-center">
-          <BarChartIcon className="h-5 w-5 mr-2 text-primary" />
-          Data Insight: Land Use Change (Monthly) 2017-2025 
+          <ChartAreaIcon className="h-5 w-5 mr-2 text-primary" />
+          Land Use Composition (2017-2023)
         </CardTitle>
       </CardHeader>
-      <CardContent> {/* text box for explanations */}
-        <div className="text-sm text-muted-foreground mt-2">
-          <p>
-            Land use change of the project surrounding over time with a smoothed moving average of 1 year span. Only showing the landed area (no water). 
-          </p>
-          <p>
-            More stable land use pattern generally indicates a more stable carbon sink.
-          </p>
-        </div>
-      </CardContent>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <div className="h-[420px] mb-3">
+        {!isVisible && (
+          <div className="flex items-center justify-center h-80 text-muted-foreground">
+            Chart loading...
+          </div>
+        )}
+        
+        {isVisible && (
+          <>
+            <div className="h-80 mb-6">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={formattedData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  onMouseMove={handleAreaChartMouseMove}
-                  onMouseLeave={handleAreaChartMouseLeave}
+                  margin={{ top: 10, right: 10, left: 20, bottom: 20 }}
+                  onMouseLeave={() => setHoveredMonth(null)}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis 
                     dataKey="month" 
-                    label={{ value: 'Date', position: 'insideBottomRight', offset: -10, style: { fontSize: 8, fill: '#666' } }} 
+                    label={{ value: 'Month', position: 'insideBottom', offset: -15 }}
                   />
                   <YAxis 
-                    label={{ value: yAxisUnit.label, angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
-                    tickFormatter={value => value.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                  />
-                  <Tooltip 
-                    content={(props: TooltipProps<any, string>) => {
-                      if (!props.active || !props.payload || !props.payload.length) return null;
-                      // Reverse the order of payload so Water is at the top
-                      const reversed = [...props.payload].reverse();
-                      return (
-                        <div className="bg-white p-3 rounded-md shadow-lg border border-border">
-                          <p className="text-sm font-medium mb-1">{props.label}</p>
-                          {reversed.map((entry, i) => {
-                            let display = Number(entry.value).toLocaleString('en-US', { maximumFractionDigits: 2 });
-                            let suffix = '';
-                            if (yAxisUnit.unit === 'millions') suffix = ' million';
-                            else if (yAxisUnit.unit === 'thousands') suffix = ' thousand';
-                            const label = FEATURE_LABELS[entry.name as string] || entry.name;
-                            return (
-                              <div key={i} className="flex items-center gap-2 text-xs">
-                                <span style={{ color: entry.color, width: 12, display: 'inline-block' }}>●</span>
-                                <span>{label}: {display}{suffix} m²</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
+                    label={{ 
+                      value: yAxisUnit.label, 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      style: { textAnchor: 'middle' }
                     }}
+                    tickFormatter={value => value.toLocaleString()}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="trees" 
-                    stackId="1" 
-                    stroke={COLORS.trees} 
-                    fill={hexToRgba(COLORS.trees, 1)} 
-                    name="Forest"
-                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  {/* <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    wrapperStyle={{ 
+                      paddingTop: '20px',
+                      marginTop: '10px',
+                      bottom: 0
+                    }}
+                  /> */}
                   <Area 
                     type="monotone" 
                     dataKey="bare" 
                     stackId="1" 
                     stroke={COLORS.bare} 
-                    fill={hexToRgba(COLORS.bare, 1)} 
+                    fill={COLORS.bare} 
                     name="Bare Land"
                   />
                   <Area 
@@ -229,7 +292,7 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="built" 
                     stackId="1" 
                     stroke={COLORS.built} 
-                    fill={hexToRgba(COLORS.built, 1)} 
+                    fill={COLORS.built} 
                     name="Built-up Area"
                   />
                   <Area 
@@ -237,7 +300,7 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="crops" 
                     stackId="1" 
                     stroke={COLORS.crops} 
-                    fill={hexToRgba(COLORS.crops, 1)} 
+                    fill={COLORS.crops} 
                     name="Cropland"
                   />
                   <Area 
@@ -245,7 +308,7 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="flooded_vegetation" 
                     stackId="1" 
                     stroke={COLORS.flooded_vegetation} 
-                    fill={hexToRgba(COLORS.flooded_vegetation, 1)} 
+                    fill={COLORS.flooded_vegetation} 
                     name="Flooded Vegetation"
                   />
                   <Area 
@@ -253,7 +316,7 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="grass" 
                     stackId="1" 
                     stroke={COLORS.grass} 
-                    fill={hexToRgba(COLORS.grass, 1)} 
+                    fill={COLORS.grass} 
                     name="Grassland"
                   />
                   <Area 
@@ -261,7 +324,7 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="shrub_and_scrub" 
                     stackId="1" 
                     stroke={COLORS.shrub_and_scrub} 
-                    fill={hexToRgba(COLORS.shrub_and_scrub, 1)} 
+                    fill={COLORS.shrub_and_scrub} 
                     name="Shrub and Scrub"
                   />
                   <Area 
@@ -269,88 +332,80 @@ const LanduseTimeSeriesChart: React.FC<LanduseTimeSeriesChartProps> = ({ data })
                     dataKey="snow_and_ice" 
                     stackId="1" 
                     stroke={COLORS.snow_and_ice} 
-                    fill={hexToRgba(COLORS.snow_and_ice, 1)} 
+                    fill={COLORS.snow_and_ice} 
                     name="Snow and Ice"
                   />
-                  {/* <Area 
+                  <Area 
+                    type="monotone" 
+                    dataKey="trees" 
+                    stackId="1" 
+                    stroke={COLORS.trees} 
+                    fill={COLORS.trees} 
+                    name="Forest"
+                  />
+                  <Area 
                     type="monotone" 
                     dataKey="water" 
                     stackId="1" 
                     stroke={COLORS.water} 
-                    fill={hexToRgba(COLORS.water, 1)} 
+                    fill={COLORS.water} 
                     name="Water"
-                  /> */}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-          </div>
-          
-          {/* Pie Chart  */}
-          <div> 
-            <div className="h-[420px] mb-3">
-              <div className="text-center mb-2">
-                <PieChartIcon className="h-5 w-5 inline-block mr-2 text-primary" />
-                <span className="text-lg font-medium">Current Land Use Distribution</span>
+
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <div className="w-full md:w-1/2 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      animationDuration={500}
+                      // label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <ResponsiveContainer width="100%" height="100%" className="flex items-center justify-center">
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    fill="#000000"
-                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                    labelLine={true}
-                  >
-                   {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={hexToRgba(entry.color, 0.7)} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => {
-                      let display = Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 });
-                      let suffix = '';
-                      if (yAxisUnit.unit === 'millions') suffix = ' million';
-                      else if (yAxisUnit.unit === 'thousands') suffix = ' thousand';
-                      return [display + suffix + ' m²', 'Area'];
-                    }}
-                  />
-                  {/* <Legend layout="horizontal" align="right" verticalAlign="bottom" /> */}
-                </PieChart>
-              </ResponsiveContainer>
+              
+              <div className="w-full md:w-1/2">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <PieChartIcon className="h-4 w-4 mr-1" />
+                  {hoveredMonth ? `Land Use Composition (${hoveredMonth})` : 'Current Land Use Composition'}
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {pieChartData.map((entry, index) => (
+                    <div key={index} className="flex items-center text-sm">
+                      <div 
+                        className="w-3 h-3 mr-2 flex-shrink-0" 
+                        style={{ backgroundColor: entry.color }}
+                      ></div>
+                      <span className="truncate">{entry.name}:</span>
+                      <span className="ml-1 font-medium">
+                        {((entry.value / totalArea) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
-      <CardContent>
-        <div className="w-full">
-          <div className="text-sm font-medium mb-2">Land Use Types:</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {Object.entries(COLORS).map(([key, color]) => {
-              // Skip water since we're not showing it in the charts
-              if (key !== 'water') {
-                return (
-                  <div key={key} className="flex items-center">
-                    <div className="w-4 h-4 mr-2" style={{ backgroundColor: hexToRgba(color, 0.7) }}></div>
-                    <span className="text-sm">{FEATURE_LABELS[key]}</span>
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
-        </div>
-      </CardContent>
-      <CardContent> {/* text box for explanations */}
-        <div className="text-sm text-muted-foreground mt-2">
-          <p>
-            This chart shows the monthly land use change 10km buffer around the project area from 2001 to 2023. 
-          </p>
-          <p className="mt-1">The data is retrieved from Dynamic World</p>
-        </div>
+
+            <div className="text-sm text-muted-foreground mt-4">
+              <p>This chart shows the land use composition over time within the project area. Hover over the area chart to see detailed breakdowns for specific months.</p>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

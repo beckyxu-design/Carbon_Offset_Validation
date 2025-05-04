@@ -8,7 +8,6 @@ export interface Project {
   name: string;
   description: string;
   location: string;
-  coordinates: [number, number];
   status: string;
   start_date: string;
   end_date: string;
@@ -16,6 +15,13 @@ export interface Project {
   updated_at?: string;
   methodology?: string;
   size?: string;
+  total_credits?: number;
+  remaining_credits?: number;
+  verifier?: string;
+  type?: string;
+  reduction_removal?: string;
+  project_developer?: string;
+  buffer?: number
 }
 
 /**
