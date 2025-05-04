@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { AIAnalysisResponse, LanduseTimeSeriesData } from "@/lib/types";
+import React, { useEffect } from "react";
+import { AIAnalysisResponse } from "@/lib/types";
 import ProjectHeader from "./ProjectHeader";
 import AIAnalysisCard from "./AIAnalysisCard";
 import RiskSummaryTable from "./RiskSummaryTable";
 import DataVisualization from "./DataVisualization";
-import LandusePieChart from "./LandusePieChart";
 import LanduseTimeSeriesChart from "./LanduseTimeSeriesChart";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProjectRiskAnalysis from "./ProjectRiskAnalysis";
+import Recommendations from "./Recommendations";
 
-// define a typescript interface with data prop type AIAnalysisResponse(structured data format)
+// define a typescript interface with input data prop type AIAnalysisResponse(structured data format)
 interface ProjectAnalysisProps {
   // must receive a data prop of type AIAnalysisResponse
   data: AIAnalysisResponse;
@@ -23,17 +24,14 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
   // Log data for debugging
   useEffect(() => {
     console.log("Project data:", data);
-    console.log("Land use time series data:", landuseData);
+    console.log("overallSummary in ProjectAnalysis:", data.overallSummary);
+    // console.log("Land use time series data:", landuseData);
   }, [data, landuseData]);
 
   return (
     <div className="space-y-8">
       <ProjectHeader project={data.projectData} />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AIAnalysisCard data={data} />
-        <RiskSummaryTable metrics={data.riskMetrics} />
-      </div>
+      <ProjectRiskAnalysis overallSummary={data.overallSummary} />
       
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         {/* Debug log for timeSeriesData */}
@@ -41,8 +39,18 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
           timeSeriesData={data.timeSeriesData || []} 
           // emissionsData={data.timeSeriesData} 
         />
-        {/* <LandusePieChart data={data.pieChartData} /> */}
+        {/* <LandusePieChart data={data.pieChartData || []} /> */}
       </div>
+  
+      <AIAnalysisCard data={data} />
+      
+      <RiskSummaryTable metrics={data.riskMetrics} />
+  
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <AIAnalysisCard data={data} />
+        <RiskSummaryTable metrics={data.riskMetrics} />
+      </div> */}
+      
       
       <div className="grid grid-cols-1 gap-6">
         {landuseData.length > 0 ? (
@@ -53,6 +61,11 @@ const ProjectAnalysis: React.FC<ProjectAnalysisProps> = ({ data }) => {
           </Alert>
         )}
       </div>
+      
+      {/* Add Recommendations component after Land Use Change section */}
+      {data.overallSummary && data.overallSummary.length > 0 && data.overallSummary[0].recommendations && (
+        <Recommendations recommendations={data.overallSummary[0].recommendations} />
+      )}
     </div>
   );
 };

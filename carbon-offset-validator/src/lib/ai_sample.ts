@@ -51,9 +51,9 @@ const sampleProjectData: { [key: string]: Project } = {
 };
 
 // Generate sample deforestation data
-const generateSampleDeforestationData = (years = 10, startHectares = 1000, decreaseRate = 0.97) => {
+const generateSampleDeforestationData = (years = 10, starthectares = 1000, decreaseRate = 0.97) => {
   const data = [];
-  let hectares = startHectares;
+  let hectares = starthectares;
   const currentYear = new Date().getFullYear();
   
   for (let i = 0; i < years; i++) {

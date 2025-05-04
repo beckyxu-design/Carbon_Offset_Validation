@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import SplitLayout from "@/components/SplitLayout";
 import { useMap } from "@/contexts/MapContext";
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FeatureCollection } from 'geojson';
+import type { FeatureCollection, Feature } from 'geojson';
 import { getProjectData } from "@/lib/api";
 
 const Results = () => {
@@ -145,6 +145,7 @@ const Results = () => {
   }
 
   return (
+    
     <SplitLayout showMap={true}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">

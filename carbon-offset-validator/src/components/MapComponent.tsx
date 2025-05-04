@@ -2,29 +2,34 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useMap } from '@/contexts/MapContext';
-import { sampleProject, sampleGeoJSON } from '@/lib/sample-data';
+import { sampleGeoJSON } from '@/lib/sample-data';
 import MapControls from './MapControls';
 import ProjectSelector from './ProjectSelector';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { getPalmoilData } from '@/lib/api';
 
-// We'll use a Mapbox-hosted tileset instead of a local GeoTIFF
-// In a real application, replace with your actual tileset ID
+import type { FeatureCollection, Feature } from 'geojson'
+
 const MapComponent: React.FC = () => {
-  const mapContainerRef = useRef<HTMLDivElement>(null); //A React ref that will be attached to a div element in your JSX
-  const map = useRef<mapboxgl.Map | null>(null); //A ref that will store the Mapbox map instance
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
   const { 
     selectedProjectId, 
     showDeforestationLayer,
+    showForestLoss1Layer,
+    showPalmLayer,
     setSelectedProjectId,
     geospatialData
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deforestationLoaded, setDeforestationLoaded] = useState(false);
+  const [forestloss1Loaded, setForestLoss1Loaded] = useState(false);
+  const [forestloss2Loaded, setForestLoss2Loaded] = useState(false);
+  const [palmLoaded, setPalmLoaded] = useState(false);
 
-  //loading basemap and load the project geojson
   useEffect(() => {
     if (!mapContainerRef.current || map.current) return;
 
@@ -36,7 +41,6 @@ const MapComponent: React.FC = () => {
       
       mapboxgl.accessToken = token;
       
-      // set basemap
       const newMap = new mapboxgl.Map({
         container: mapContainerRef.current,
         style: 'mapbox://styles/mapbox/satellite-v9',
@@ -44,14 +48,9 @@ const MapComponent: React.FC = () => {
         zoom: 5
       });
 
-      // Add navigation controls
-      newMap.addControl(
-        new mapboxgl.NavigationControl({visualizePitch: true}),
-        'bottom-right'
-      );
-      // Add attributions in a better position
-      newMap.addControl(new mapboxgl.AttributionControl({compact: true}), 'bottom-left');
-      // Add atmosphere and fog effects
+      newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+      newMap.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+
       newMap.on('style.load', () => {
         newMap.setFog({
           color: 'rgb(186, 210, 235)', 
@@ -59,92 +58,245 @@ const MapComponent: React.FC = () => {
           'horizon-blend': 0.1
         });
       });
+
       map.current = newMap;
 
-      // Add project layers when the map is ready
       newMap.on('load', () => {
         setMapInitialized(true);
         setError(null);
 
-        // Add project area layer
+        // Add project shape layer
         map.current?.addSource('project-area', {
           type: 'geojson',
           data: geospatialData || sampleGeoJSON
         });
-
+        console.log(geospatialData)
         map.current?.addLayer({
           id: 'project-area-fill',
           type: 'fill',
           source: 'project-area',
           paint: {
-            'fill-color': '#F9C80E',
+            'fill-color': '#0074FF',
             'fill-opacity': 0.4
           }
         });
-
         map.current?.addLayer({
           id: 'project-area-line',
           type: 'line',
           source: 'project-area',
           paint: {
-            'line-color': '#F9C80E',
+            'line-color': '#0074FF',
             'line-width': 2
           }
         });
-        const TILESET_ID = 'ichobecky.cus4ehcj';
-        // Add deforestation layer using a Mapbox-hosted tileset
-        try {
-          // beckyzqxu.b217gxob
-          // Using a standard Mapbox tileset that we know exists
-          map.current?.addSource('deforestation-source', {
-            type: 'raster',
-            // Using Mapbox's satellite tileset as a placeholder
-            tiles: [
-              `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
-            ],
-            tileSize: 256
-          });
-          // map.current?.addSource('deforestation-source', {
-          //   type: 'raster',
-          //   // Using Mapbox's satellite tileset as a placeholder
-          //   tiles: [
-          //     `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
-          //   ],
-          //   tileSize: 256
-          // });
 
-          // Add raster layer with initial visibility based on context
+        // Add deforestation layer
+        const TILESET_ID = 'ichobecky.cus4ehcj';
+        try {
+          // Try to load from sessionStorage first
+          const deforestationTiles = sessionStorage.getItem('deforestationTiles');
+          if (deforestationTiles) {
+            map.current?.addSource('deforestation-source', {
+              ...(JSON.parse(deforestationTiles) as any),
+              type: 'raster',
+            });
+            setDeforestationLoaded(true);
+            console.log('Deforestation layer loaded from sessionStorage');
+          } else {
+            const deforestationSource = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('deforestation-source', deforestationSource);
+            sessionStorage.setItem('deforestationTiles', JSON.stringify(deforestationSource));
+            setDeforestationLoaded(true);
+            console.log('Deforestation layer loaded successfully and saved to sessionStorage');
+          }
           map.current?.addLayer({
             id: 'deforestation-layer',
             type: 'raster',
             source: 'deforestation-source',
             paint: {
               'raster-opacity': 0.9
-              ,
-              // 'raster-saturation': -0.9, // Make it more grayscale to represent deforestation data
-              // 'raster-contrast': 0.2,
-              // 'raster-brightness-min': 0.1
             },
             layout: {
               visibility: showDeforestationLayer ? 'visible' : 'none'
             }
           });
-          
-          setDeforestationLoaded(true);
-          console.log('Deforestation layer loaded successfully');
         } catch (error) {
           console.error('Error loading deforestation layer:', error);
           toast.error('Failed to load deforestation layer');
         }
+        
+        // Add forest loss change layer 1 - small
+        const TILESET_ID_FL1 = 'beckyzqxu.7ggv075e';
+        try {
+          // Try to load from sessionStorage first
+          const forestLoss1Tiles = sessionStorage.getItem('forestLoss1Tiles');
+          if (forestLoss1Tiles) {
+            map.current?.addSource('forest-loss-1-source', {
+              ...(JSON.parse(forestLoss1Tiles) as any),
+              type: 'raster',
+            });
+            setForestLoss1Loaded(true);
+            console.log('Forest loss change layer 1 loaded from sessionStorage');
+          } else {
+            const forestLoss1Source = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID_FL1}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('forest-loss-1-source', forestLoss1Source);
+            sessionStorage.setItem('forestLoss1Tiles', JSON.stringify(forestLoss1Source));
+            setForestLoss1Loaded(true);
+            console.log('Forest loss change layer 1 loaded successfully and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'forest-loss-1-layer',
+            type: 'raster',
+            source: 'forest-loss-1-source',
+            paint: {
+              'raster-opacity': 0.9
+            },
+            layout: {
+              visibility: showForestLoss1Layer ? 'visible' : 'none'
+            }
+          });
+        } catch (error) {
+          console.error('Error loading forest loss 1 change layer:', error);
+          toast.error('Failed to load forest loss 1 change layer');
+        }
 
-        // Add click handler
+        // Add forest loss change layer 2 - large
+        const TILESET_ID_FL2 = 'beckyzqxu.821qca28';
+        try {
+          // Try to load from sessionStorage first
+          const forestLoss2Tiles = sessionStorage.getItem('forestLoss2Tiles');
+          if (forestLoss2Tiles) {
+            map.current?.addSource('forest-loss-2-source', {
+              ...(JSON.parse(forestLoss2Tiles) as any),
+              type: 'raster',
+            });
+            setForestLoss2Loaded(true);
+            console.log('Forest loss change layer 2 loaded from sessionStorage');
+          } else {
+            const forestLoss2Source = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID_FL2}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('forest-loss-2-source', forestLoss2Source);
+            sessionStorage.setItem('forestLoss2Tiles', JSON.stringify(forestLoss2Source));
+            setForestLoss2Loaded(true);
+            console.log('Forest loss change layer loaded successfully and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'forest-loss-2-layer',
+            type: 'raster',
+            source: 'forest-loss-2-source',
+            paint: {
+              'raster-opacity': 0.9
+            },
+            layout: {
+              visibility: showForestLoss1Layer ? 'visible' : 'none'
+            }
+          });
+        } catch (error) {
+          console.error('Error loading forest loss 2 change layer:', error);
+          toast.error('Failed to load forest loss 2 change layer');
+        }
+
+        // Add palm oil concession vector layer
+        const TILESET_ID_PALM = 'ichobecky.bjwru1ey';
+        try {
+          // Try to load from sessionStorage first
+          const palmTiles = sessionStorage.getItem('palmTiles');
+          if (palmTiles) {
+            map.current?.addSource('palm-source', {
+              ...(JSON.parse(palmTiles) as any),
+              type: 'vector',
+            });
+            setPalmLoaded(true);
+            console.log('Palm oil concession loaded from sessionStorage');
+          } else {
+            map.current?.addSource('palm-source', {
+              type: 'vector',
+              url: `mapbox://${TILESET_ID_PALM}`
+            });
+            sessionStorage.setItem('palmTiles', JSON.stringify({
+              type: 'vector',
+              url: `mapbox://${TILESET_ID_PALM}`
+            }));
+            setPalmLoaded(true);
+            console.log('Palm oil concession loaded and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'palm-source-id',
+            type: 'fill',
+            source: 'palm-source',
+            'source-layer': 'Indonesia_oil_palm_concession-8b9x8u',
+            paint: {
+              'fill-color': '#D9D9D9',
+              'fill-opacity': 0.3
+            },
+            layout: {
+              visibility: showPalmLayer ? 'visible' : 'none'
+            }
+          });
+
+          // Add hover handler for palm oil concessions
+          let palmPopup: mapboxgl.Popup | null = null;
+          map.current?.on('mousemove', 'palm-source-id', (e) => {
+            if (e.features && e.features.length > 0) {
+              const properties = e.features[0].properties || {};
+              const company = properties.company;
+              const groupComp = properties.group_comp;
+              if ((company || groupComp) && map.current) {
+                map.current.getCanvas().style.cursor = 'pointer';
+                const coordinates = e.lngLat;
+                // Only show one popup at a time
+                let content = "<div style='font-size:13px; opacity:0.9; background: white; border-radius: 4px; padding: 4px 8px;'>";
+                if (company) content += `<strong>Company:</strong> ${company}<br/>`;
+                if (groupComp) content += `<strong>Group:</strong> ${groupComp}`;
+                content += "</div>";
+                if (!palmPopup) {
+                  palmPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+                    .setLngLat(coordinates)
+                    .setHTML(content)
+                    .addTo(map.current);
+                } else {
+                  palmPopup.setLngLat(coordinates)
+                    .setHTML(content);
+                }
+              }
+            }
+          });
+          map.current?.on('mouseleave', 'palm-source-id', () => {
+            if (palmPopup) {
+              palmPopup.remove();
+              palmPopup = null;
+            }
+            map.current && (map.current.getCanvas().style.cursor = '');
+          });
+        } catch (error) {
+          console.error('Error loading palm oil concession layer:', error);
+          toast.error('Failed to load palm oil concession layer');
+        }
+
+        // Add click handler for project area
         map.current?.on('click', 'project-area-fill', (e) => {
           if (e.features && e.features[0].properties) {
             setSelectedProjectId(e.features[0].properties.id);
           }
         });
 
-        // Change cursor on hover
         map.current?.on('mouseenter', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         });
@@ -153,7 +305,6 @@ const MapComponent: React.FC = () => {
         });
       });
 
-      // Clean up on unmount
       return () => {
         newMap.remove();
         map.current = null;
@@ -164,70 +315,223 @@ const MapComponent: React.FC = () => {
       setError(errorMessage);
       toast.error(errorMessage);
     }
-  }, [setSelectedProjectId, geospatialData, showDeforestationLayer]);
+  }, [setSelectedProjectId, geospatialData]);
 
-  // Update map bounding box to locate project geojson
+  // Update project area bounds
   useEffect(() => {
-    if (!mapInitialized || !map.current) return;
+    if (!mapInitialized || !map.current || !geospatialData) return;
 
-    // If we have a map source and geospatial data, update the source
-    if (map.current.getSource('project-area') && geospatialData) {
-      (map.current.getSource('project-area') as mapboxgl.GeoJSONSource).setData(geospatialData);
+    const source = map.current.getSource('project-area') as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData(geospatialData);
       
-      // Try to fit the map to the bounds of the geospatial data
-      try {
-        // Create a bounding box for the features
-        const bounds = new mapboxgl.LngLatBounds();
-        
-        geospatialData.features.forEach(feature => {
-          if (feature.geometry.type === 'Polygon') {
-            const coordinates = feature.geometry.coordinates[0];
-            coordinates.forEach((coord: [number, number]) => {
+      const bounds = new mapboxgl.LngLatBounds();
+      geospatialData.features.forEach(feature => {
+        if (feature.geometry.type === 'Polygon') {
+          feature.geometry.coordinates[0].forEach((coord: [number, number]) => {
+            bounds.extend(coord as mapboxgl.LngLatLike);
+          });
+        } else if (feature.geometry.type === 'MultiPolygon') {
+          feature.geometry.coordinates.forEach(polygon => {
+            polygon[0].forEach((coord: [number, number]) => {
               bounds.extend(coord as mapboxgl.LngLatLike);
             });
-          } else if (feature.geometry.type === 'MultiPolygon') {
-            // Handle MultiPolygon geometry type
-            const polygons = feature.geometry.coordinates;
-            polygons.forEach(polygon => {
-              // Each polygon has an outer ring (first element)
-              const outerRing = polygon[0];
-              outerRing.forEach((coord: [number, number]) => {
-                bounds.extend(coord as mapboxgl.LngLatLike);
-              });
-            });
-          } else if (feature.geometry.type === 'Point') {
-            bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
-          }
-        });
-        
-        // Only zoom to bounds if we have valid bounds
-        if (!bounds.isEmpty()) {
-          map.current.fitBounds(bounds, {
-            padding: 50,
-            maxZoom: 15
           });
+        } else if (feature.geometry.type === 'Point') {
+          bounds.extend(feature.geometry.coordinates as mapboxgl.LngLatLike);
         }
-      } catch (error) {
-        console.error('Error fitting map to bounds:', error);
+      });
+
+      if (!bounds.isEmpty()) {
+        map.current.fitBounds(bounds, { padding: 50, maxZoom: 14 });
       }
     }
   }, [mapInitialized, geospatialData]);
 
-  // Toggle deforestation layer visibility
+  // Update deforestation layer visibility when toggle changes
   useEffect(() => {
-    if (!mapInitialized || !map.current) return;
-
+    if (!map.current || !mapInitialized) return;
+    
     if (map.current.getLayer('deforestation-layer')) {
       map.current.setLayoutProperty(
         'deforestation-layer',
         'visibility',
         showDeforestationLayer ? 'visible' : 'none'
       );
-      console.log(`Deforestation layer visibility set to: ${showDeforestationLayer ? 'visible' : 'none'}`);
-    } else {
-      console.warn('Deforestation layer not found in map');
     }
-  }, [mapInitialized, showDeforestationLayer]);
+  }, [showDeforestationLayer, mapInitialized]);
+
+  // Separate effect for Forest Loss 1 layer with animated fade transition
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !map.current.getLayer('forest-loss-1-layer')) return;
+    
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'forest-loss-1-layer',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showForestLoss1Layer ? 0.9 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showForestLoss1Layer ? 0 : 0.9;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('forest-loss-1-layer', 'raster-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
+    }
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'forest-loss-1-layer',
+          'raster-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showForestLoss1Layer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'forest-loss-1-layer',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showForestLoss1Layer, mapInitialized]);
+
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !map.current.getLayer('forest-loss-2-layer')) return;
+    
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'forest-loss-2-layer',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showForestLoss1Layer ? 0.9 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showForestLoss1Layer ? 0 : 0.9;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('forest-loss-2-layer', 'raster-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
+    }
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'forest-loss-2-layer',
+          'raster-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showForestLoss1Layer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'forest-loss-2-layer',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showForestLoss1Layer, mapInitialized]);
+
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !map.current.getLayer('palm-source-id')) return;
+    
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'palm-source-id',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showPalmLayer ? 0.3 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showPalmLayer ? 0 : 0.3;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('palm-source-id', 'fill-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
+    }
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'palm-source-id',
+          'fill-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showPalmLayer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'palm-source-id',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showPalmLayer, mapInitialized]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">

@@ -8,10 +8,20 @@ export interface Project {
   name: string;
   description: string;
   location: string;
-  coordinates: [number, number];
   status: string;
-  startDate: string;
-  endDate: string;
+  start_date: string;
+  end_date: string;
+  created_at?: string;
+  updated_at?: string;
+  methodology?: string;
+  size?: string;
+  total_credits?: number;
+  remaining_credits?: number;
+  verifier?: string;
+  type?: string;
+  reduction_removal?: string;
+  project_developer?: string;
+  buffer?: number
 }
 
 /**
@@ -45,6 +55,7 @@ export interface LanduseTimeSeriesData {
   snow_and_ice: number;
   trees: number;
   water: number;
+  null: number;
 }
 
 /**
@@ -83,8 +94,30 @@ export interface Document {
  */
 export interface Summary {
   summary: string;
-  recommendations: string[];
-  additionalInsights: string;
+  policy_analysis?: string; // JSON string from Supabase
+  news?: string | NewsArticle[]; // JSON string or parsed array from Supabase
+  policyAssessment?: PolicyAssessment; // Parsed policy_analysis for frontend
+  newsSearch?: NewsArticle[]; // Parsed news for frontend
+}
+
+/**
+ * News article from search interface
+ */
+export interface NewsArticle {
+  title: string;
+  url: string;
+  content: string;
+}
+
+/**
+ * Policy assessment interface
+ */
+export interface PolicyAssessment {
+  regulatory?: string;
+  finance?: string;
+  permanence?: string;
+  local_economy?: string;
+  [key: string]: string | undefined;
 }
 
 /**
@@ -93,10 +126,13 @@ export interface Summary {
 export interface AIAnalysisResponse {
   projectData: Project;
   queryResponse: string;
+  overallSummary: OverallSummary[];
   summary: Summary;
+  policyAssessment?: PolicyAssessment;
+  newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
-  pieChartData: PieChartData[];
+  pieChartData?: PieChartData[];
   geospatialData: GeoData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
   documents: {
@@ -112,6 +148,7 @@ export interface AIAnalysisRequest {
   projectCode: string;
   query: string;
   files?: UploadedFile[]; // Add optional files field
+  registry: string; // Add registry field for carbon registry selection
 }
 
 /**
@@ -146,15 +183,31 @@ export interface GeoData extends Feature {
 }
 
 /**
+ * Overall analysis data interface
+ */
+export interface OverallSummary {
+  summary: string
+  recommendations: string
+  // Optionally, include id, project_id, created_at, updated_at if present in Supabase
+  id?: string
+  project_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+/**
  * Project data response interface
  */
 export interface ProjectDataResponse {
   project: Project;
   projects?: Project[];  // Optional array of projects for listing all projects
+  overallSummary: OverallSummary[];
   summary: Summary;
+  policyAssessment?: PolicyAssessment;
+  newsSearch?: NewsArticle[];
   riskMetrics: RiskMetric[];
   timeSeriesData: TimeSeriesData[];
   landuseTimeSeriesData: LanduseTimeSeriesData[];
-  pieChartData: PieChartData[];
+  pieChartData?: PieChartData[];
   geospatialData: GeoData[];
 }

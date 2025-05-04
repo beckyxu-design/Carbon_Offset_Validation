@@ -45,7 +45,7 @@ const LandusePieChart: React.FC<LandusePieChartProps> = ({ data }) => {
               </Pie>
               <Tooltip
                 formatter={(value: number) => [
-                  `${value.toFixed(2)} hectares (${((value / total) * 100).toFixed(1)}%)`,
+                  `${value.toFixed(2)} square meters (m²) (${((value / total) * 100).toFixed(1)}%)`,
                   'Area'
                 ]}
               />

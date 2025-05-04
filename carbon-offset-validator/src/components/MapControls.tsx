@@ -10,10 +10,17 @@ import {
 } from "@/components/ui/tooltip";
 
 const MapControls: React.FC = () => {
-  const { showDeforestationLayer, toggleDeforestationLayer } = useMap();
+  const { 
+    showDeforestationLayer, 
+    toggleDeforestationLayer,
+    showForestLoss1Layer,
+    toggleForestLoss1Layer,
+    showPalmLayer,
+    togglePalmLayer
+  } = useMap();
 
   return (
-    <div className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-2 flex gap-2 border border-border/60">
+    <div className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-2 flex flex-col gap-2 border border-border/60">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -31,7 +38,7 @@ const MapControls: React.FC = () => {
                   <EyeOff className="h-4 w-4" />
                 )}
               </Toggle>
-              <span className="text-xs font-medium whitespace-nowrap">Deforestation Layer</span>
+              <span className="text-xs font-medium whitespace-nowrap">Deforestation (2018-2024) | Dynamic World </span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="left">
@@ -39,24 +46,59 @@ const MapControls: React.FC = () => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="h-8 w-8 flex items-center justify-center rounded border border-border text-xs text-muted-foreground">
-              <Layers className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <Toggle
+                pressed={showForestLoss1Layer}
+                onPressedChange={toggleForestLoss1Layer}
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 data-[state=on]:bg-primary/20 data-[state=on]:text-primary"
+              >
+                {showForestLoss1Layer ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Toggle>
+              <span className="text-xs font-medium whitespace-nowrap"> Forest Loss (2001-2023) | GFW </span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <div className="space-y-1">
-              <p className="text-xs font-medium">Map layers:</p>
-              <ul className="text-xs text-muted-foreground">
-                <li>• Project boundaries</li>
-                <li>• {showDeforestationLayer ? 'Deforestation rates (visible)' : 'Deforestation rates (hidden)'}</li>
-              </ul>
-            </div>
+            <p className="text-xs">{showForestLoss1Layer ? 'Hide' : 'Show'} Forest Loss </p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Toggle
+                pressed={showPalmLayer}
+                onPressedChange={togglePalmLayer}
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0 data-[state=on]:bg-primary/20 data-[state=on]:text-primary"
+              >
+                {showPalmLayer ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Toggle>
+              <span className="text-xs font-medium whitespace-nowrap">Oil Palm Concessions (2023) | GFW</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <p className="text-xs">{showPalmLayer ? 'Hide' : 'Show'} Oil Palm Concessions</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
     </div>
   );
 };
