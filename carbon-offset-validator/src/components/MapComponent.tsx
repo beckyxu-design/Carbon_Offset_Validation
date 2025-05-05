@@ -21,13 +21,15 @@ const MapComponent: React.FC = () => {
     showForestLoss1Layer,
     showPalmLayer,
     setSelectedProjectId,
-    geospatialData
+    geospatialData,
+    showForestLossYear23Layer,
   } = useMap();
   const [mapInitialized, setMapInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deforestationLoaded, setDeforestationLoaded] = useState(false);
   const [forestloss1Loaded, setForestLoss1Loaded] = useState(false);
   const [forestloss2Loaded, setForestLoss2Loaded] = useState(false);
+  const [forestlossYear23Loaded, setForestLossYear23Loaded] = useState(false);
   const [palmLoaded, setPalmLoaded] = useState(false);
 
   useEffect(() => {
@@ -213,6 +215,47 @@ const MapComponent: React.FC = () => {
           toast.error('Failed to load forest loss 2 change layer');
         }
 
+        // TEST
+        const TILESET_ID_FL_Y = 'beckyzqxu.86vm8fc1';
+        try {
+          // Try to load from sessionStorage first
+          const forestLossYear23Tiles = sessionStorage.getItem('forestLossYear23Tiles');
+          if (forestLossYear23Tiles) {
+            map.current?.addSource('forest-loss-year23-source', {
+              ...(JSON.parse(forestLossYear23Tiles) as any),
+              type: 'raster',
+            });
+            setForestLossYear23Loaded(true);
+            console.log('Forest loss change layer 2 loaded from sessionStorage');
+          } else {
+            const forestLossYear23Source = {
+              type: 'raster' as const,
+              tiles: [
+                `https://api.mapbox.com/v4/${TILESET_ID_FL_Y}/{z}/{x}/{y}.png?access_token=${mapboxgl.accessToken}`
+              ],
+              tileSize: 256
+            };
+            map.current?.addSource('forest-loss-year23-source', forestLossYear23Source);
+            sessionStorage.setItem('forestLossYear23Tiles', JSON.stringify(forestLossYear23Source));
+            setForestLossYear23Loaded(true);
+            console.log('Forest loss change layer loaded successfully and saved to sessionStorage');
+          }
+          map.current?.addLayer({
+            id: 'forest-loss-year23-layer',
+            type: 'raster',
+            source: 'forest-loss-year23-source',
+            paint: {
+              'raster-opacity': 0.9
+            },
+            layout: {
+              visibility: showForestLossYear23Layer ? 'visible' : 'none'
+            }
+          });
+        } catch (error) {
+          console.error('Error loading forest loss year 23 change layer:', error);
+          toast.error('Failed to load forest loss year 23 change layer');
+        }
+
         // Add palm oil concession vector layer
         const TILESET_ID_PALM = 'ichobecky.bjwru1ey';
         try {
@@ -296,7 +339,6 @@ const MapComponent: React.FC = () => {
             setSelectedProjectId(e.features[0].properties.id);
           }
         });
-
         map.current?.on('mouseenter', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         });
@@ -533,6 +575,64 @@ const MapComponent: React.FC = () => {
     requestAnimationFrame(animate);
   }, [showPalmLayer, mapInitialized]);
 
+  // Update forest loss year 23 layer visibility when toggle changes
+  useEffect(() => {
+    if (!map.current || !mapInitialized || !map.current.getLayer('forest-loss-year23-layer')) return;
+    
+    // Always set to visible first when toggling
+    map.current.setLayoutProperty(
+      'forest-loss-year23-layer',
+      'visibility',
+      'visible'
+    );
+    
+    // Animate the opacity
+    const targetOpacity = showForestLossYear23Layer ? 0.9 : 0;
+    const duration = 800; // ms
+    const frames = 20;
+    const initialOpacity = showForestLossYear23Layer ? 0 : 0.9;
+    
+    // Get current opacity from map if possible, otherwise use initial value
+    let currentOpacity = initialOpacity;
+    try {
+      const currentStyle = map.current.getPaintProperty('forest-loss-year23-layer', 'raster-opacity');
+      if (currentStyle !== undefined && typeof currentStyle === 'number') {
+        currentOpacity = currentStyle;
+      }
+    } catch (e) {
+      console.log('Could not get current opacity, using default');
+    }
+    
+    const step = (targetOpacity - currentOpacity) / frames;
+    let frame = 0;
+    
+    const animate = () => {
+      frame++;
+      const newOpacity = currentOpacity + (step * frame);
+      
+      if (map.current) {
+        map.current.setPaintProperty(
+          'forest-loss-year23-layer',
+          'raster-opacity',
+          newOpacity
+        );
+      }
+      
+      if (frame < frames) {
+        requestAnimationFrame(animate);
+      } else if (!showForestLossYear23Layer && map.current) {
+        // Only hide the layer after fade out is complete
+        map.current.setLayoutProperty(
+          'forest-loss-year23-layer',
+          'visibility',
+          'none'
+        );
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [showForestLossYear23Layer, mapInitialized]);
+
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden border border-border/30 shadow-lg">
       {error && (
@@ -548,7 +648,7 @@ const MapComponent: React.FC = () => {
         ref={mapContainerRef}
         className="w-full h-full"
       />
-      <ProjectSelector />
+      {/* <ProjectSelector /> */}
       <MapControls />
       {!mapInitialized && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
