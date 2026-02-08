@@ -36,7 +36,9 @@ const MapComponent: React.FC = () => {
     if (!mapContainerRef.current || map.current) return;
 
     try {
-      const token = import.meta.env.VITE_MAPBOX_TOKEN;
+      const token = String(import.meta.env.VITE_MAPBOX_TOKEN || '')
+        .trim()
+        .replace(/^['"]|['"]$/g, '');
       if (!token) {
         throw new Error('Mapbox token not found. Please add VITE_MAPBOX_TOKEN to your .env.local file.');
       }
@@ -59,6 +61,18 @@ const MapComponent: React.FC = () => {
           'high-color': 'rgb(36, 92, 223)', 
           'horizon-blend': 0.1
         });
+      });
+
+      newMap.on('error', (e) => {
+        const message = (e?.error as Error | undefined)?.message || '';
+        if (
+          message.toLowerCase().includes('access token') ||
+          message.toLowerCase().includes('unauthorized') ||
+          message.toLowerCase().includes('forbidden')
+        ) {
+          setError(`Mapbox authorization error: ${message}`);
+        }
+        console.error('Mapbox runtime error:', e);
       });
 
       map.current = newMap;
