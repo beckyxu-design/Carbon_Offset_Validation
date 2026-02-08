@@ -5,6 +5,7 @@ services:
     rootDir: carbon-offset-validator/server
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /api/projects
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
@@ -22,6 +23,7 @@ services:
     rootDir: carbon-offset-validator/server-python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/projects
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
@@ -48,6 +50,8 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
+      - key: NODE_VERSION
+        value: 20
       - key: VITE_MAPBOX_TOKEN
         sync: false
       - key: VITE_API_URL
