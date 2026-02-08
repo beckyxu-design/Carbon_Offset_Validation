@@ -9,7 +9,7 @@ services:
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: "20"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
@@ -27,7 +27,7 @@ services:
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
+        value: "3.11.9"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
@@ -51,7 +51,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: "20"
       - key: VITE_MAPBOX_TOKEN
         sync: false
       - key: VITE_API_URL
