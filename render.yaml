@@ -2,7 +2,6 @@ services:
   - type: web
     name: carbon-offset-node-api
     env: node
-    # plan: free
     rootDir: carbon-offset-validator/server
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -20,7 +19,6 @@ services:
   - type: web
     name: carbon-offset-python-api
     env: python
-    # plan: free
     rootDir: carbon-offset-validator/server-python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
@@ -48,7 +46,7 @@ services:
     env: static
     rootDir: carbon-offset-validator
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_MAPBOX_TOKEN
         sync: false
