@@ -70,7 +70,7 @@ const Index = () => {
   };
 
   return (
-    <SplitLayout showMap={false}>
+    <SplitLayout showMap={true}>
       <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
         <div className="flex-1">
           <div className="p-6 sm:p-10">

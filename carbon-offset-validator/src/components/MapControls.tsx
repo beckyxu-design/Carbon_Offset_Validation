@@ -16,7 +16,9 @@ const MapControls: React.FC = () => {
     showForestLoss1Layer,
     toggleForestLoss1Layer,
     showPalmLayer,
-    togglePalmLayer
+    togglePalmLayer,
+    showForestLossYear23Layer,
+    toggleForestLossYear23Layer
   } = useMap();
 
   return (
