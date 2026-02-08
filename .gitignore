@@ -6,3 +6,6 @@ carbon-offset-validator/server-python/chroma_db_gemini/6044762a-6ac7-4bf4-af70-f
 carbon-offset-validator/server-python/chroma_db_gemini/77fd4697-3bce-41eb-b730-5fd8f98dd12e/length.bin
 *.pickle
 *.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3

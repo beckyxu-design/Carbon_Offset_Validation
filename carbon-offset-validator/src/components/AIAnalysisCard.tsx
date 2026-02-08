@@ -18,7 +18,6 @@ interface AIAnalysisCardProps {
 const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   const [copied, setCopied] = useState<boolean>(false);
   const [expandedSummary, setExpandedSummary] = useState<boolean>(false);
-  const [expandedNews, setExpandedNews] = useState<boolean>(false);
   
   // Function to format policy text by parsing markdown-style formatting
   const formatPolicyText = (text: string) => {
@@ -85,11 +84,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
   const summarySentences = data.summary.summary.split('.').filter(s => s.trim()).map(s => s.trim() + '.');
   const visibleSentences = expandedSummary ? summarySentences : summarySentences.slice(0, 3);
   
-  // Get visible news articles (first 2 when collapsed, all when expanded)
-  const newsArticles = Array.isArray(data.summary.newsSearch) ? data.summary.newsSearch : [];
-  const visibleNewsArticles = expandedNews 
-    ? newsArticles 
-    : newsArticles.slice(0, 1);
+  // News articles have been moved to a separate NewsArticlesCard component
     
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
@@ -258,70 +253,7 @@ const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({ data }) => {
           </div>
         )}
 
-        {newsArticles.length > 0 && (
-          <div className="relative">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Related News Articles</h3>
-            <div className="space-y-3">
-              {visibleNewsArticles.map((article: NewsArticle, idx: number) => (
-                <div key={idx} className="bg-secondary/30 p-3 rounded-md">
-                  <h4 className="font-medium mb-1">{article.title}</h4>
-                  <p className="text-sm mb-2">{article.content}</p>
-                  <a 
-                    href={article.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary text-sm flex items-center hover:underline"
-                  >
-                    Read More <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </div>
-              ))}
-            </div>
-            
-            {/* Show "Read more" button only if there are more than 2 news articles */}
-            {newsArticles.length > 1 && (
-              <div className="mt-3 text-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setExpandedNews(!expandedNews)}
-                  className="text-xs text-muted-foreground hover:text-primary flex items-center mx-auto"
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {expandedNews ? (
-                      <motion.div 
-                        key="less"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex items-center"
-                      >
-                        Show less <ChevronUp className="ml-1 h-3 w-3" />
-                      </motion.div>
-                    ) : (
-                      <motion.div 
-                        key="more"
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 5 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex items-center"
-                      >
-                        Show all {newsArticles.length} news articles <ChevronDown className="ml-1 h-3 w-3" />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Button>
-              </div>
-            )}
-            
-            {/* Gradient fade at the bottom when collapsed */}
-            {!expandedNews && newsArticles.length > 1 && (
-              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
-            )}
-          </div>
-        )}
+        {/* News articles section has been moved to a separate NewsArticlesCard component */}
       </CardContent>
     </Card>
   );
