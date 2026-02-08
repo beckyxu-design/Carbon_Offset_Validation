@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import MapboxWorker from 'mapbox-gl/dist/mapbox-gl-csp-worker?worker';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useMap } from '@/contexts/MapContext';
 import { sampleGeoJSON } from '@/lib/sample-data';
@@ -13,6 +14,9 @@ import { getPalmoilData } from '@/lib/api';
 import type { FeatureCollection, Feature } from 'geojson'
 
 const MapComponent: React.FC = () => {
+  // Force a bundled local worker to avoid Chrome blob/extension policy breakage.
+  (mapboxgl as any).workerClass = MapboxWorker;
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const { 
@@ -35,62 +39,105 @@ const MapComponent: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current || map.current) return;
 
-    try {
-      const token = import.meta.env.VITE_MAPBOX_TOKEN;
-      if (!token) {
-        throw new Error('Mapbox token not found. Please add VITE_MAPBOX_TOKEN to your .env.local file.');
-      }
-      
-      mapboxgl.accessToken = token;
-      
-      const newMap = new mapboxgl.Map({
-        container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/satellite-v9',
-        center: [113.9213, -0.7893],
-        zoom: 5
-      });
+    let cancelled = false;
+    let cleanupMap: (() => void) | null = null;
 
-      newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
-      newMap.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+    const initializeMap = async () => {
+      try {
+        const token = import.meta.env.VITE_MAPBOX_TOKEN?.trim();
+        if (!token) {
+          throw new Error('Mapbox token not found. Please add VITE_MAPBOX_TOKEN to your .env.local file.');
+        }
 
-      newMap.on('style.load', () => {
-        newMap.setFog({
-          color: 'rgb(186, 210, 235)', 
-          'high-color': 'rgb(36, 92, 223)', 
-          'horizon-blend': 0.1
-        });
-      });
+        const testCanvas = document.createElement('canvas');
+        const webgl =
+          testCanvas.getContext('webgl2') ||
+          testCanvas.getContext('webgl') ||
+          testCanvas.getContext('experimental-webgl');
+        if (!webgl) {
+          throw new Error('WebGL is unavailable in this browser/session. Enable hardware acceleration and disable strict privacy/ad-block extensions.');
+        }
 
-      map.current = newMap;
-
-      newMap.on('load', () => {
-        setMapInitialized(true);
-        setError(null);
-
-        // Add project shape layer
-        map.current?.addSource('project-area', {
-          type: 'geojson',
-          data: geospatialData || sampleGeoJSON
-        });
-        console.log(geospatialData)
-        map.current?.addLayer({
-          id: 'project-area-fill',
-          type: 'fill',
-          source: 'project-area',
-          paint: {
-            'fill-color': '#0074FF',
-            'fill-opacity': 0.4
+        // Explicitly test Mapbox style access to distinguish auth/network failures from render issues.
+        try {
+          const styleProbe = await fetch(`https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12?access_token=${token}`);
+          if (!styleProbe.ok) {
+            throw new Error(`Mapbox style request failed with ${styleProbe.status}. Check token scopes and URL restrictions (allow localhost:8080).`);
           }
-        });
-        map.current?.addLayer({
-          id: 'project-area-line',
-          type: 'line',
-          source: 'project-area',
-          paint: {
-            'line-color': '#0074FF',
-            'line-width': 2
+        } catch (probeError: any) {
+          if (probeError?.message) {
+            throw probeError;
           }
+          throw new Error('Cannot reach api.mapbox.com. Check VPN/firewall/ad-blockers/privacy extensions.');
+        }
+
+        if (cancelled || !mapContainerRef.current) return;
+
+        mapboxgl.accessToken = token;
+        let hasMapLoaded = false;
+        
+        const newMap = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/satellite-streets-v12',
+          center: [113.9213, -0.7893],
+          zoom: 5
         });
+
+        newMap.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+        newMap.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-left');
+
+        newMap.on('style.load', () => {
+          newMap.setFog({
+            color: 'rgb(186, 210, 235)', 
+            'high-color': 'rgb(36, 92, 223)', 
+            'horizon-blend': 0.1
+          });
+        });
+
+        map.current = newMap;
+        const loadTimeout = window.setTimeout(() => {
+          if (!hasMapLoaded) {
+            const timeoutMessage = 'Map loading timed out. Mapbox requests are likely blocked by network, extension, or browser policy.';
+            setError(timeoutMessage);
+            toast.error(timeoutMessage);
+          }
+        }, 20000);
+
+        newMap.on('error', (event) => {
+          const mapboxError = (event as any)?.error?.message || 'Mapbox failed to load map resources';
+          setError(mapboxError);
+          toast.error(mapboxError);
+        });
+        newMap.on('load', () => {
+          hasMapLoaded = true;
+          window.clearTimeout(loadTimeout);
+          setMapInitialized(true);
+          setError(null);
+
+          // Add project shape layer
+          map.current?.addSource('project-area', {
+            type: 'geojson',
+            data: geospatialData || sampleGeoJSON
+          });
+          console.log(geospatialData)
+          map.current?.addLayer({
+            id: 'project-area-fill',
+            type: 'fill',
+            source: 'project-area',
+            paint: {
+              'fill-color': '#0074FF',
+              'fill-opacity': 0.4
+            }
+          });
+          map.current?.addLayer({
+            id: 'project-area-line',
+            type: 'line',
+            source: 'project-area',
+            paint: {
+              'line-color': '#0074FF',
+              'line-width': 2
+            }
+          });
 
         // Add deforestation layer
         const TILESET_ID = 'ichobecky.cus4ehcj';
@@ -345,19 +392,28 @@ const MapComponent: React.FC = () => {
         map.current?.on('mouseleave', 'project-area-fill', () => {
           if (map.current) map.current.getCanvas().style.cursor = '';
         });
-      });
+        });
 
-      return () => {
-        newMap.remove();
-        map.current = null;
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize the map';
-      console.error('Error initializing map:', error);
-      setError(errorMessage);
-      toast.error(errorMessage);
-    }
-  }, [setSelectedProjectId, geospatialData]);
+        cleanupMap = () => {
+          window.clearTimeout(loadTimeout);
+          newMap.remove();
+          map.current = null;
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to initialize the map';
+        console.error('Error initializing map:', error);
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
+    };
+
+    void initializeMap();
+
+    return () => {
+      cancelled = true;
+      if (cleanupMap) cleanupMap();
+    };
+  }, [setSelectedProjectId]);
 
   // Update project area bounds
   useEffect(() => {
