@@ -1,7 +1,7 @@
 services:
   - type: web
     name: carbon-offset-node-api
-    env: node
+    runtime: node
     rootDir: carbon-offset-validator/server
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -19,7 +19,7 @@ services:
 
   - type: web
     name: carbon-offset-python-api
-    env: python
+    runtime: python
     rootDir: carbon-offset-validator/server-python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
@@ -45,7 +45,7 @@ services:
 
   - type: web
     name: carbon-offset-frontend
-    env: static
+    runtime: static
     rootDir: carbon-offset-validator
     buildCommand: npm install && npm run build
     staticPublishPath: dist
