@@ -2,14 +2,13 @@ services:
   - type: web
     name: carbon-offset-node-api
     env: node
-    plan: free
     rootDir: carbon-offset-validator/server
     buildCommand: npm install && npm run build
     startCommand: npm start
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: 20
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
@@ -20,14 +19,13 @@ services:
   - type: web
     name: carbon-offset-python-api
     env: python
-    plan: free
     rootDir: carbon-offset-validator/server-python
     buildCommand: pip install -r requirements.txt
     startCommand: python -m uvicorn server:app --host 0.0.0.0 --port 10000
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.9"
+        value: 3.11.9
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
