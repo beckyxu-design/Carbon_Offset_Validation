@@ -47,7 +47,7 @@ services:
     name: carbon-offset-frontend
     env: static
     rootDir: carbon-offset-validator
-    buildCommand: bun install && bun run build
+    buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_MAPBOX_TOKEN
