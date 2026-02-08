@@ -2,7 +2,7 @@ services:
   - type: web
     name: carbon-offset-validator-api
     runtime: python
-    rootDir: server-python
+    rootDir: carbon-offset-validator/server-python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
