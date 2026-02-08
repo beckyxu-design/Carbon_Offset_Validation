@@ -19,6 +19,7 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<string>("deforestation");
   const { fadeForestLoss1Layer } = useMap();
+  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
   
   // --- Unit adjustment logic ---
   const getYAxisUnit = (data: TimeSeriesData[]) => {
@@ -94,12 +95,13 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
   }
 
   const coloredData = useMemo(() => {
-    return transformedData.map((d) => ({
+    return transformedData.map((d, index) => ({
       ...d,
-      // barColor: yearToColor[d.timestamp] || '#3b82f6'
-      barColor: '#727272'
+      barColor: hoveredBarIndex === index 
+        ? yearToColor[d.timestamp] || '#3b82f6' 
+        : '#727272'
     }));
-  }, [transformedData]);
+  }, [transformedData, hoveredBarIndex, yearToColor]);
 
   return (
     <Card className="glass-card overflow-hidden animate-fade-in">
@@ -154,6 +156,14 @@ const DataVisualization: React.FC<DataVisualizationProps> = ({
                       data={transformedData}
                       margin={{ top: 10, right: 10, left: 20, bottom: 20 }}
                       barSize={20}
+                      onMouseMove={(data) => {
+                        if (data && data.activeTooltipIndex !== undefined) {
+                          setHoveredBarIndex(data.activeTooltipIndex);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredBarIndex(null);
+                      }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis 

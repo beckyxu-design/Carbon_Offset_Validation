@@ -201,7 +201,7 @@ async def store_analysis_results(project_code:str, project_data:Dict[str, Any]):
         # Insert project
         response = supabase.table("projects").insert(project_data).execute()
         project_id = response.data[0]["id"]
-        print(f"Insert response status: {response.status_code if hasattr(project_response, 'status_code') else 'N/A'}")
+        print(f"Insert response status: {response.status_code if hasattr(response, 'status_code') else 'N/A'}")
         print(f"Create new Project basic info table for project with code: {project_code}")
             
     return project_id

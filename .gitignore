@@ -1,0 +1,11 @@
+carbon-offset-validator/server-python/chroma_db_gemini/562a6919-0ff5-490b-8d80-f870d53b03c9/data_level0.bin
+carbon-offset-validator/server-python/chroma_db_gemini/562a6919-0ff5-490b-8d80-f870d53b03c9/header.bin
+carbon-offset-validator/server-python/chroma_db_gemini/562a6919-0ff5-490b-8d80-f870d53b03c9/index_metadata.pickle
+carbon-offset-validator/server-python/chroma_db_gemini/562a6919-0ff5-490b-8d80-f870d53b03c9/link_lists.bin
+carbon-offset-validator/server-python/chroma_db_gemini/6044762a-6ac7-4bf4-af70-fd947b39e4b2/length.bin
+carbon-offset-validator/server-python/chroma_db_gemini/77fd4697-3bce-41eb-b730-5fd8f98dd12e/length.bin
+*.pickle
+*.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3
+carbon-offset-validator/server-python/_pipeline/chroma_db_gemini/chroma.sqlite3

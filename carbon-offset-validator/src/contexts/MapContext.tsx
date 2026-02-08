@@ -13,6 +13,8 @@ type MapContextType = {
   setGeospatialData: (data: FeatureCollection | null) => void;
   showPalmLayer: boolean;
   togglePalmLayer: () => void;
+  showForestLossYear23Layer: boolean;
+  toggleForestLossYear23Layer: () => void;
 };
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export const MapProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showForestLoss1Layer, setShowForestLoss1Layer] = useState(false);
   const [geospatialData, setGeospatialData] = useState<FeatureCollection | null>(null);
   const [showPalmLayer, setShowPalmLayer] = useState(false);
+  const [showForestLossYear23Layer, setShowForestLossYear23Layer] = useState(false);
 
   const toggleDeforestationLayer = () => {
     setShowDeforestationLayer(prev => !prev);
@@ -40,6 +43,10 @@ export const MapProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowPalmLayer(prev => !prev);
   };
 
+  const toggleForestLossYear23Layer = () => {
+    setShowForestLossYear23Layer(prev => !prev);
+  };
+
   return (
     <MapContext.Provider
       value={{
@@ -54,6 +61,8 @@ export const MapProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setGeospatialData,
         showPalmLayer,
         togglePalmLayer,
+        showForestLossYear23Layer,
+        toggleForestLossYear23Layer,
       }}
     >
       {children}

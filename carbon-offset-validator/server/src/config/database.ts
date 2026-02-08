@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://ssndcivabflkcfqwaapj.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://gxebihtgwriamryktphr.supabase.co';
 const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseKey) {
