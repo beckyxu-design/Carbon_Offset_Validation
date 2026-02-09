@@ -21,7 +21,7 @@ import traceback
 # Import core database functions that don't depend on LlamaIndex
 from database import get_projects, get_palm_data, get_project_details, update_regional_analy_summary
 
-# Safely import optional components
+# Safely import optional components (loaded lazily to avoid slow startup on Render)
 store_analysis_results = None
 process_uploaded_file = None
 store_file = None
@@ -29,24 +29,52 @@ extract_doc_basicInfo = None
 analyze_policy_risks = None
 analyze_projectdesign_risks = None
 
-# Try to import optional components that use LlamaIndex
-try:
-    from file_service import process_uploaded_file, store_file
-except ImportError as e:
-    print(f"Warning: Could not import file_service: {e}")
-    print("File upload functionality will be disabled")
 
-try:
-    from llm_service import extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
-except ImportError as e:
-    print(f"Warning: Could not import llm_service: {e}")
-    print("Document analysis functionality will be disabled")
+def _ensure_file_service_loaded():
+    global process_uploaded_file, store_file
+    if process_uploaded_file is not None and store_file is not None:
+        return
+    try:
+        from file_service import process_uploaded_file as _process_uploaded_file, store_file as _store_file
+        process_uploaded_file = _process_uploaded_file
+        store_file = _store_file
+    except Exception as e:
+        print(f"Warning: Could not import file_service: {e}")
+        raise HTTPException(status_code=500, detail="File upload functionality is disabled")
 
-try:
-    from database import store_analysis_results
-except ImportError as e:
-    print(f"Warning: Could not import store_analysis_results: {e}")
-    print("Project analysis storage will be disabled")
+
+def _ensure_llm_service_loaded():
+    global extract_doc_basicInfo, analyze_policy_risks, analyze_projectdesign_risks
+    if (
+        extract_doc_basicInfo is not None
+        and analyze_policy_risks is not None
+        and analyze_projectdesign_risks is not None
+    ):
+        return
+    try:
+        from llm_service import (
+            extract_doc_basicInfo as _extract_doc_basicInfo,
+            analyze_policy_risks as _analyze_policy_risks,
+            analyze_projectdesign_risks as _analyze_projectdesign_risks,
+        )
+        extract_doc_basicInfo = _extract_doc_basicInfo
+        analyze_policy_risks = _analyze_policy_risks
+        analyze_projectdesign_risks = _analyze_projectdesign_risks
+    except Exception as e:
+        print(f"Warning: Could not import llm_service: {e}")
+        raise HTTPException(status_code=500, detail="Document analysis functionality is disabled")
+
+
+def _ensure_store_analysis_loaded():
+    global store_analysis_results
+    if store_analysis_results is not None:
+        return
+    try:
+        from database import store_analysis_results as _store_analysis_results
+        store_analysis_results = _store_analysis_results
+    except Exception as e:
+        print(f"Warning: Could not import store_analysis_results: {e}")
+        raise HTTPException(status_code=500, detail="Project analysis storage is disabled")
 
 try:
     from models import ProjectAnalysisRequest, ProjectAnalysisResponse
@@ -150,8 +178,7 @@ async def check_project_exists(code: str):
 
 @app.post("/api/upload")
 async def upload_file(file: UploadFile = File(...)):
-    if store_file is None or process_uploaded_file is None:
-        raise HTTPException(status_code=500, detail="File upload functionality is disabled")
+    _ensure_file_service_loaded()
     try:
         file_id = await store_file(file) # file_id is a generated uuid
         document_index= await process_uploaded_file(file)
@@ -161,8 +188,8 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/api/analyze")
 async def analyze_project_llm(request: ProjectAnalysisRequest):
-    if extract_doc_basicInfo is None or analyze_policy_risks is None or analyze_projectdesign_risks is None or store_analysis_results is None:
-        raise HTTPException(status_code=500, detail="Document analysis functionality is disabled")
+    _ensure_llm_service_loaded()
+    _ensure_store_analysis_loaded()
     try:
         # Extract document data
         project_data = await extract_doc_basicInfo(request.document_text)
