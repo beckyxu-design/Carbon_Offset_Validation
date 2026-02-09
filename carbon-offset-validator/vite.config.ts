@@ -24,7 +24,8 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     commonjsOptions: {
-      include: ['mapbox-gl']
+      include: [/node_modules/],
+      transformMixedEsModules: true,
     }
   }
 }));
